@@ -7,17 +7,20 @@ OutFile "${APPNAME}_Setup_${VERSION}.exe"
 InstallDir "${INSTALL_DIR}"
 RequestExecutionLevel admin
 
+; --- Correct Page Order ---
 Page directory
 Page instfiles
-Page uninstConfirm
-Page uninstfiles
+UninstPage uninstConfirm
+UninstPage instfiles
 
 Section "Install"
   SetOutPath "$INSTDIR"
   File /r "install\*.*"
 
+  ; Create desktop shortcut
   CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\bin\${APPNAME}.exe"
 
+  ; This line was missing before -> creates uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 SectionEnd
 
