@@ -3,8 +3,6 @@ name: Build Qt App (Windows)
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -21,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           choco install ninja -y
           choco install nsis -y
@@ -35,24 +33,27 @@ jobs:
           arch: ${{ env.QT_ARCH }}
           cache: true
 
-      - name: Configure CMake
-        run: cmake -B ${{ env.BUILD_DIR }} -G "Ninja" -S . -DCMAKE_BUILD_TYPE=Release
+      - name: Setup MSVC Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-      - name: Build
+      - name: Configure CMake (MSVC)
+        run: cmake -B ${{ env.BUILD_DIR }} -G "Visual Studio 17 2022" -A x64 -S .
+
+      - name: Build (Release)
         run: cmake --build ${{ env.BUILD_DIR }} --config Release
 
-      # ✅ Make install folder manually
-      - name: Prepare install directory
+      - name: Prepare Install Dir
         run: |
           mkdir ${{ env.INSTALL_DIR }}
           mkdir ${{ env.INSTALL_DIR }}\bin
-          copy ${{ env.BUILD_DIR }}\apptest_qt.exe ${{ env.INSTALL_DIR }}\bin\
+          copy ${{ env.BUILD_DIR }}\Release\apptest_qt.exe ${{ env.INSTALL_DIR }}\bin\
 
-      # ✅ Deploy Qt DLLs directly to install/bin
-      - name: Bundle Qt runtime
+      - name: Deploy Qt
         run: windeployqt ${{ env.INSTALL_DIR }}\bin\apptest_qt.exe --qmldir .
 
-      - name: Build installer (.exe)
+      - name: Build Installer
         run: '"C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi'
 
       - name: Upload Installer
