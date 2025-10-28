@@ -14,20 +14,21 @@ jobs:
     env:
       BUILD_DIR: build
       INSTALL_DIR: install
-      QT_VERSION: 6.8
+      GENERATOR: "Ninja"
+      QT_VERSION: 6.8   # tested and available for Windows
       QT_MODULES: qtmultimedia
-      APP_NAME: apptest_qt
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Tools
+      - name: Install dependencies
         run: |
           choco install ninja -y
           choco install nsis -y
 
-      - name: Setup Qt
+      # ✅ Easiest and fastest Qt setup
+      - name: Set up Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -37,39 +38,32 @@ jobs:
           modules: ${{ env.QT_MODULES }}
           cache: true
 
-      - name: Setup MSVC Compiler
+      - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1
 
       - name: Configure CMake
-        run: cmake -B ${{ env.BUILD_DIR }} -G "Visual Studio 17 2022" -S . -A x64 -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -G "Visual Studio 17 2022" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -A x64 -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build App
+      - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --config Release
 
-      - name: Install App
+      - name: Install
         run: cmake --install ${{ env.BUILD_DIR }} --config Release
 
-      - name: Find windeployqt path
-        id: windeployqt
-        shell: pwsh
+      - name: Bundle Qt dependencies
         run: |
-          $wqt = Get-ChildItem -Path "C:\Users\runneradmin\Qt" -Recurse -Filter windeployqt.exe | Select-Object -First 1
-          if (-not $wqt) { throw "windeployqt not found!" }
-          echo "WQT_PATH=$($wqt.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          windeployqt "${{ env.INSTALL_DIR }}\bin\apptest_qt.exe" --release
 
-      - name: Bundle Qt Dependencies
-        shell: pwsh
-        run: |
-          & "${env:WQT_PATH}" "${{ env.INSTALL_DIR }}\bin\${{ env.APP_NAME }}.exe" --release --compiler-runtime
+      - name: Refresh environment
+        run: refreshenv
 
-      - name: Build Installer (NSIS)
+      - name: Build installer
         shell: pwsh
         run: |
           & "C:\Program Files (x86)\NSIS\makensis.exe" /V2 installer.nsi
 
-      - name: Upload Installer
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: Windows-Installer
           path: "*.exe"
-
