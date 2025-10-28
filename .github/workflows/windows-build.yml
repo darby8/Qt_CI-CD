@@ -14,21 +14,19 @@ jobs:
     env:
       BUILD_DIR: build
       INSTALL_DIR: install
-      GENERATOR: "Ninja"
-      QT_VERSION: 6.8   # tested and available for Windows
+      QT_VERSION: 6.8
       QT_MODULES: qtmultimedia
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install tools
         run: |
           choco install ninja -y
           choco install nsis -y
 
-      # ✅ Easiest and fastest Qt setup
-      - name: Set up Qt
+      - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -38,11 +36,11 @@ jobs:
           modules: ${{ env.QT_MODULES }}
           cache: true
 
-      - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v1
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Configure CMake
-        run: cmake -B build -G "Visual Studio 17 2022" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -A x64 -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B ${{ env.BUILD_DIR }} -G "Ninja" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --config Release
@@ -50,20 +48,30 @@ jobs:
       - name: Install
         run: cmake --install ${{ env.BUILD_DIR }} --config Release
 
-      - name: Bundle Qt dependencies
+      # ✅ Auto-detect the built .exe
+      - name: Detect application executable
+        id: find_exe
+        shell: pwsh
         run: |
-          windeployqt "${{ env.INSTALL_DIR }}\bin\apptest_qt.exe" --release
+          $exe = Get-ChildItem "${{ env.INSTALL_DIR }}\bin" -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error "No .exe found in install/bin" }
+          echo "exe_path=${exe.FullName}" >> $env:GITHUB_OUTPUT
+          echo "Detected application: $($exe.Name)"
 
-      - name: Refresh environment
-        run: refreshenv
+      # ✅ Deploy Qt + MSVC runtime
+      - name: Bundle Qt Dependencies
+        shell: pwsh
+        run: |
+          & "${{ env.Qt6_Dir }}\bin\windeployqt.exe" "${{ steps.find_exe.outputs.exe_path }}" --release --compiler-runtime
 
-      - name: Build installer
+      - name: Build Installer (NSIS)
         shell: pwsh
         run: |
           & "C:\Program Files (x86)\NSIS\makensis.exe" /V2 installer.nsi
 
-      - name: Upload installer
+      - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Windows-Installer
           path: "*.exe"
+
