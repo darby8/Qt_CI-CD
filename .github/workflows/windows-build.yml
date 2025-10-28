@@ -1,47 +1,63 @@
-name: Build Windows Installer
+name: Build Qt App (Windows)
 
 on:
   push:
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
 
+    env:
+      BUILD_DIR: build
+      INSTALL_DIR: install
+      QT_VERSION: 6.8.3
+      QT_ARCH: win64_msvc2022_64
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3
-      with:
-        version: '6.8.3'   # ✅ match your Linux version
-        host: windows
-        target: desktop
-        arch: win64_msvc2022_64
+      - name: Install dependencies
+        run: |
+          choco install ninja -y
+          choco install nsis -y
 
-    - name: Configure project
-      run: cmake -S . -B build -G "NMake Makefiles"
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: ${{ env.QT_ARCH }}
+          cache: true
 
-    - name: Build project
-      run: cmake --build build --config Release
+      - name: Configure CMake
+        run: cmake -B ${{ env.BUILD_DIR }} -G "Ninja" -S . -DCMAKE_BUILD_TYPE=Release
 
-    - name: Install NSIS
-      run: choco install nsis -y
+      - name: Build
+        run: cmake --build ${{ env.BUILD_DIR }} --config Release
 
-    - name: Deploy Qt DLLs (windeployqt)
-      run: |
-        mkdir install
-        mkdir install\bin
-        copy build\Release\apptest_qt.exe install\bin\
-        windeployqt install\bin\apptest_qt.exe --qmldir .
+      # ✅ Make install folder manually
+      - name: Prepare install directory
+        run: |
+          mkdir ${{ env.INSTALL_DIR }}
+          mkdir ${{ env.INSTALL_DIR }}\bin
+          copy ${{ env.BUILD_DIR }}\apptest_qt.exe ${{ env.INSTALL_DIR }}\bin\
 
-    - name: Create Installer
-      run: makensis installer.nsi
+      # ✅ Deploy Qt DLLs directly to install/bin
+      - name: Bundle Qt runtime
+        run: windeployqt ${{ env.INSTALL_DIR }}\bin\apptest_qt.exe --qmldir .
 
-    - name: Upload Installer
-      uses: actions/upload-artifact@v3
-      with:
-        name: Windows-Installer
-        path: *.exe
+      - name: Build installer (.exe)
+        run: '"C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi'
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Installer
+          path: "*.exe"
 
