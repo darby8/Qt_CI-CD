@@ -61,8 +61,11 @@ jobs:
       # ✅ Deploy Qt + MSVC runtime
       - name: Bundle Qt Dependencies
         shell: pwsh
+        env:
+          EXE: ${{ steps.find_exe.outputs.exe_path }}
         run: |
-          & "${{ env.Qt6_Dir }}\bin\windeployqt.exe" "${{ steps.find_exe.outputs.exe_path }}" --release --compiler-runtime
+          & "$Env:Qt6_DIR\bin\windeployqt.exe" "$Env:EXE" --release --compiler-runtime
+
 
       - name: Build Installer (NSIS)
         shell: pwsh
