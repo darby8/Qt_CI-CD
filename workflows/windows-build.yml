@@ -1,0 +1,69 @@
+name: Build Qt App (Windows)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      BUILD_DIR: build
+      INSTALL_DIR: install
+      GENERATOR: "Ninja"
+      QT_VERSION: 6.8   # tested and available for Windows
+      QT_MODULES: qtmultimedia
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          choco install ninja -y
+          choco install nsis -y
+
+      # ✅ Easiest and fastest Qt setup
+      - name: Set up Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: ${{ env.QT_MODULES }}
+          cache: true
+
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v1
+
+      - name: Configure CMake
+        run: cmake -B build -G "Visual Studio 17 2022" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build ${{ env.BUILD_DIR }} --config Release
+
+      - name: Install
+        run: cmake --install ${{ env.BUILD_DIR }} --config Release
+
+      - name: Bundle Qt dependencies
+        run: |
+          windeployqt "${{ env.INSTALL_DIR }}\bin\apptest_qt.exe" --release
+
+      - name: Refresh environment
+        run: refreshenv
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /V2 installer.nsi
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Installer
+          path: "*.exe"
