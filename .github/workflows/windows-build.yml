@@ -49,15 +49,18 @@ jobs:
       - name: Install App
         run: cmake --install ${{ env.BUILD_DIR }} --config Release
 
-      # ✅ UPDATED: Correct windeployqt path (no scanning)
+      - name: Find windeployqt path
+        id: windeployqt
+        shell: pwsh
+        run: |
+          $wqt = Get-ChildItem -Path "C:\Users\runneradmin\Qt" -Recurse -Filter windeployqt.exe | Select-Object -First 1
+          if (-not $wqt) { throw "windeployqt not found!" }
+          echo "WQT_PATH=$($wqt.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Bundle Qt Dependencies
         shell: pwsh
         run: |
-          $wqt = Join-Path $env:Qt6_DIR "bin\windeployqt.exe"
-          if (-not (Test-Path $wqt)) {
-            throw "ERROR: windeployqt not found at $wqt"
-          }
-          & $wqt "${{ env.INSTALL_DIR }}\bin\${{ env.APP_NAME }}.exe" --release --compiler-runtime
+          & "${env:WQT_PATH}" "${{ env.INSTALL_DIR }}\bin\${{ env.APP_NAME }}.exe" --release --compiler-runtime
 
       - name: Build Installer (NSIS)
         shell: pwsh
