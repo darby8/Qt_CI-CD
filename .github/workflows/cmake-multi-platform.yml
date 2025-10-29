@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
+    build-linux:
     name: Build Linux AppImage
     runs-on: ubuntu-latest
 
     env:
       BUILD_DIR: build
-      APP_NAME: apptest_qt   # <-- Change to your real executable name (important!)
+      APP_NAME: apptest_qt
 
     steps:
       - name: Checkout repository
@@ -25,9 +25,7 @@ jobs:
           host: linux
           target: desktop
           arch: gcc_64
-          modules: qtbase qtdeclarative qtquickcontrols2 qtmultimedia
           cache: true
-
 
       - name: Install required system libs
         run: |
@@ -51,7 +49,6 @@ jobs:
           mkdir -p AppDir
           EXE="${{ env.BUILD_DIR }}/${{ env.APP_NAME }}"
           echo "Using executable: $EXE"
-
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable "$EXE" \
             --desktop-file deploy/app.desktop \
             --icon-file deploy/app.png \
