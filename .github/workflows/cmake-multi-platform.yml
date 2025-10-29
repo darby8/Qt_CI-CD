@@ -18,10 +18,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Qt 6.8.3 (GCC)
+      - name: Install Qt 6.8.2 (GCC)
         uses: jurplel/install-qt-action@v4
         with:
-          version: 6.8.3
+          version: 6.8.2
           host: linux
           target: desktop
           arch: gcc_64
