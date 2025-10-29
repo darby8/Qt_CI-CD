@@ -3,6 +3,7 @@ name: Build Qt App (Windows)
 on:
   push:
     branches: [ main ]
+
   workflow_dispatch:
 
 jobs:
@@ -12,20 +13,20 @@ jobs:
     env:
       BUILD_DIR: build
       INSTALL_DIR: install
-      QT_VERSION: 6.8   # Change if needed
+      GENERATOR: "Ninja"
+      QT_VERSION: 6.8   # tested and available for Windows
       QT_MODULES: qtmultimedia
 
     steps:
-      # 1) Get source code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) Install required tools
       - name: Install dependencies
         run: |
           choco install ninja -y
+          choco install nsis -y
 
-      # 3) Install Qt
+      # ✅ Easiest and fastest Qt setup
       - name: Set up Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -36,36 +37,35 @@ jobs:
           modules: ${{ env.QT_MODULES }}
           cache: true
 
-      # 4) Setup MSVC (compiler)
       - name: Setup MSVC
         uses: microsoft/setup-msbuild@v1
 
-      # 5) Configure project
       - name: Configure CMake
-        run: cmake -B ${{ env.BUILD_DIR }} -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -DCMAKE_BUILD_TYPE=Release -G "Ninja"
+        run: cmake -B build -G "Visual Studio 17 2022" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -A x64 -DCMAKE_BUILD_TYPE=Release
 
-      # 6) Build project
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --config Release
 
-      # 7) Install built files
       - name: Install
         run: cmake --install ${{ env.BUILD_DIR }} --config Release
 
-      # 8) Deploy Qt DLLs to EXE folder
-      - name: Bundle Qt runtime files
+      - name: Bundle Qt dependencies
         run: |
-          windeployqt "${{ env.INSTALL_DIR }}\bin\apptest_qt.exe" --release --dir "${{ env.INSTALL_DIR }}\bin"
+          windeployqt "${{ env.INSTALL_DIR }}\bin\apptest_qt.exe" --release
 
-      # 9) Create portable ZIP package
+      - name: Refresh environment
+        run: refreshenv
+        
       - name: Create Portable ZIP
         run: |
           powershell Compress-Archive -Path "${{ env.INSTALL_DIR }}\bin\*" -DestinationPath "${{ env.INSTALL_DIR }}\apptest_portable.zip" -Force
 
-      # 10) Upload result ZIP
+
+
+
       - name: Upload Portable Build
         uses: actions/upload-artifact@v4
         with:
           name: apptest-portable-windows
           path: ${{ env.INSTALL_DIR }}\apptest_portable.zip
-
+      
