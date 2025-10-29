@@ -14,10 +14,8 @@ UninstPage instfiles
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  File /r "build\Desktop_Qt_6_8_3-Release\*.*"
-
-  ; Create Desktop Shortcut
-  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_NAME}.exe"
+  File /r "build\*.*"
+  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\apptest_qt.exe"
 SectionEnd
 
 Section "Uninstall"

@@ -13,39 +13,48 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-
-
     - name: Install Tools
       run: |
         choco install ninja -y
         choco install nsis -y
 
-    - name: Install Qt
+    - name: Install Qt (MSVC)
       uses: jurplel/install-qt-action@v4
       with:
         version: 6.8.3
         host: windows
         target: desktop
         arch: win64_msvc2022_64
+        modules: qtquick qtmlanguageclient
 
-    - name: Configure CMake (MSVC)
-      run: cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+    - name: Setup MSVC Environment
+      shell: cmd
+      run: call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 
-    - name: Build App (MSVC)
+    - name: Configure CMake (force MSVC)
+      shell: cmd
+      run: |
+        cmake -S . -B build -G "Ninja" ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DCMAKE_C_COMPILER=cl.exe ^
+          -DCMAKE_CXX_COMPILER=cl.exe
+
+    - name: Build App
+      shell: cmd
       run: cmake --build build --config Release
 
     - name: Deploy Qt Dependencies
-      run: |
-        set PATH=%Qt6_DIR%/bin;%PATH%
-        windeployqt --release --qmldir=. "build\Desktop_Qt_6_8_3-Release\apptest_qt.exe"
+      shell: cmd
+      run: windeployqt --release --qmldir=. build\apptest_qt.exe
 
     - name: Copy MSVC Runtime
+      shell: cmd
       run: |
-        xcopy "C:\Program Files\Microsoft Visual Studio\2022\*\VC\Redist\MSVC\*\x64\*.dll" "build\Desktop_Qt_6_8_3-Release" /Y
+        xcopy "%VCToolsRedistDir%x64\Microsoft.VC*.CRT\*.dll" build\ /Y
 
     - name: Build Installer
-      run: |
-        "C:\Program Files (x86)\NSIS\makensis.exe" installer\installer.nsi
+      shell: cmd
+      run: "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
 
     - name: Upload Installer
       uses: actions/upload-artifact@v4
