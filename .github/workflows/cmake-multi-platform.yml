@@ -6,53 +6,45 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    name: Build Linux AppImage
-    runs-on: ubuntu-latest
+linux-build:
+  runs-on: ubuntu-latest
 
-    env:
-      BUILD_DIR: build
-      APP_NAME: apptest_qt
+  steps:
+    - uses: actions/checkout@v3
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential mesa-common-dev libglu1-mesa-dev libglib2.0-dev
 
-      - name: Install Qt 6.8.2 (GCC)
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: 6.8.2
-          host: linux
-          target: desktop
-          arch: gcc_64
-          cache: true
+    - name: Install Python & aqt
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install aqtinstall
 
-      - name: Install required system libs
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential cmake patchelf libgl1-mesa-dev fuse
+    - name: Install Qt 6.5.3 for Linux
+      run: |
+        aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
 
-      - name: Configure
-        run: cmake -S . -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE=Release
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64
 
-      - name: Build
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel
+    - name: Build
+      run: |
+        cmake --build build --parallel
 
-      - name: Download linuxdeploy + Qt plugin
-        run: |
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x linuxdeploy*.AppImage
+    - name: Package .AppImage
+      run: |
+        mkdir -p appdir/usr/bin
+        cp build/YourAppExecutableName appdir/usr/bin/
+        chmod +x appdir/usr/bin/YourAppExecutableName
 
-      - name: Create AppImage
-        run: |
-          mkdir -p AppDir
-          EXE="${{ env.BUILD_DIR }}/${{ env.APP_NAME }}"
-          echo "Using executable: $EXE"
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable "$EXE" \
-            --desktop-file deploy/app.desktop \
-            --icon-file deploy/app.png \
-            --plugin qt --output appimage
+        wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        chmod +x linuxdeploy-x86_64.AppImage
+
+        ./linuxdeploy-x86_64.AppImage --appdir appdir --output appimage
+
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
