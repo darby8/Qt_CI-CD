@@ -26,9 +26,6 @@ jobs:
             libgl1-mesa-dev \
             patchelf
 
-      - name: Remove old Qt (if any)
-        run: rm -rf Qt
-
       - name: Install Python & aqt
         run: |
           python3 -m pip install --upgrade pip
@@ -52,18 +49,17 @@ jobs:
         run: |
           EXE=$(find build -maxdepth 2 -type f -executable | head -n 1)
           echo "EXE=$EXE" >> $GITHUB_ENV
-          echo "Found executable: $EXE"
+          echo "✅ Found executable: $EXE"
 
-      - name: Add desktop + icon
+      - name: Create AppDir + desktop + icon
         run: |
           mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
           cp "$EXE" AppDir/usr/bin/
           chmod +x AppDir/usr/bin/*
 
-          # Ensure deploy/app.png exists in repo
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
-          cat > AppDir/usr/share/applications/app.desktop << EOF
+          cat << 'EOF' > AppDir/usr/share/applications/app.desktop
 [Desktop Entry]
 Name=My Qt App
 Exec=$(basename "$EXE")
