@@ -25,7 +25,9 @@ jobs:
           host: linux
           target: desktop
           arch: gcc_64
+          modules: qtbase qtdeclarative qtquickcontrols2 qtmultimedia
           cache: true
+
 
       - name: Install required system libs
         run: |
