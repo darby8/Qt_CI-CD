@@ -54,17 +54,16 @@ jobs:
           echo "EXE=$EXE" >> $GITHUB_ENV
           echo "Found executable: $EXE"
 
-      - name: Add desktop + icon metadata
+      - name: Add desktop + icon
         run: |
           mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
-
           cp "$EXE" AppDir/usr/bin/
           chmod +x AppDir/usr/bin/*
 
-          # Ensure your icon file exists: deploy/app.png
+          # Ensure deploy/app.png exists in repo
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
-          cat <<EOF > AppDir/usr/share/applications/app.desktop
+          cat > AppDir/usr/share/applications/app.desktop << EOF
 [Desktop Entry]
 Name=My Qt App
 Exec=$(basename "$EXE")
@@ -84,7 +83,7 @@ EOF
           export QTDIR="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64"
           export PATH="$QTDIR/bin:$PATH"
           export QMAKE="$QTDIR/bin/qmake"
-          echo "Using qmake at: $QMAKE"
+          echo "Using qmake: $QMAKE"
           $QMAKE -v
 
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
