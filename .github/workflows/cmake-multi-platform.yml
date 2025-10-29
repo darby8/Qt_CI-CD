@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-    build-linux:
+  build-linux:
     name: Build Linux AppImage
     runs-on: ubuntu-latest
 
