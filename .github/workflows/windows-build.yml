@@ -52,14 +52,16 @@ jobs:
       # 7) Download linuxdeployqt
       - name: Install linuxdeployqt
         run: |
-          wget https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-x86_64.AppImage
+          wget https://github.com/probonopd/linuxdeployqt/releases/latest/download/linuxdeployqt-x86_64.AppImage
           chmod +x linuxdeployqt-x86_64.AppImage
+
 
       # 8) Bundle Qt dependencies
       - name: Bundle Qt dependencies
         run: |
           cd ${{ env.INSTALL_DIR }}/bin
-          ./../../linuxdeployqt-x86_64.AppImage apptest_qt -appimage -verbose=2
+          ../../linuxdeployqt-x86_64.AppImage apptest_qt -appimage -verbose=2
+
 
       # 9) Create portable tar.gz
       - name: Create portable archive
