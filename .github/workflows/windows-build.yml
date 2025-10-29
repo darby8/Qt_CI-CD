@@ -13,9 +13,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Clean old build cache
-      run: rmdir /S /Q build
-      shell: cmd
+    - name: Clean old build cache (if exists)
+  shell: cmd
+  run: |
+    IF EXIST build (
+      rmdir /S /Q build
+    )
+
 
     - name: Install Tools
       run: |
