@@ -3,8 +3,7 @@ name: Build Qt App (Windows)
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+
   workflow_dispatch:
 
 jobs:
@@ -57,10 +56,7 @@ jobs:
       - name: Refresh environment
         run: refreshenv
 
-      - name: Build installer
-        shell: pwsh
-        run: |
-          & "C:\Program Files (x86)\NSIS\makensis.exe" /V2 installer.nsi
+     
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
