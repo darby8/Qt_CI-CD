@@ -1,71 +1,75 @@
-name: Build Qt App (Windows)
+name: Build Qt App (Linux)
 
 on:
   push:
     branches: [ main ]
-
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     env:
       BUILD_DIR: build
       INSTALL_DIR: install
-      GENERATOR: "Ninja"
-      QT_VERSION: 6.8   # tested and available for Windows
+      QT_VERSION: 6.8.0   # Change if needed
       QT_MODULES: qtmultimedia
 
     steps:
+      # 1) Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2) Install dependencies
       - name: Install dependencies
         run: |
-          choco install ninja -y
-          choco install nsis -y
+          sudo apt update
+          sudo apt install -y ninja-build patchelf wget tar 
 
-      # ✅ Easiest and fastest Qt setup
+      # 3) Install Qt (Linux)
       - name: Set up Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
-          host: windows
+          host: linux
           target: desktop
-          arch: win64_msvc2022_64
+          arch: linux_gcc_64
           modules: ${{ env.QT_MODULES }}
           cache: true
 
-      - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v1
+      # 4) Configure CMake
+      - name: Configure
+        run: cmake -B ${{ env.BUILD_DIR }} -S . -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }} -DCMAKE_BUILD_TYPE=Release -G Ninja
 
-      - name: Configure CMake
-        run: cmake -B build -G "Visual Studio 17 2022" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -A x64 -DCMAKE_BUILD_TYPE=Release
-
+      # 5) Build
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --config Release
 
+      # 6) Install
       - name: Install
         run: cmake --install ${{ env.BUILD_DIR }} --config Release
 
+      # 7) Download linuxdeployqt
+      - name: Install linuxdeployqt
+        run: |
+          wget https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-x86_64.AppImage
+          chmod +x linuxdeployqt-x86_64.AppImage
+
+      # 8) Bundle Qt dependencies
       - name: Bundle Qt dependencies
         run: |
-          windeployqt "${{ env.INSTALL_DIR }}\bin\apptest_qt.exe" --release
+          cd ${{ env.INSTALL_DIR }}/bin
+          ./../../linuxdeployqt-x86_64.AppImage apptest_qt -appimage -verbose=2
 
-      - name: Refresh environment
-        run: refreshenv
-        
-      - name: Create Portable ZIP
+      # 9) Create portable tar.gz
+      - name: Create portable archive
         run: |
-          powershell Compress-Archive -Path "${{ env.INSTALL_DIR }}\bin\*" -DestinationPath "${{ env.INSTALL_DIR }}\apptest_portable.zip" -Force
+          tar czvf apptest_linux_portable.tar.gz -C ${{ env.INSTALL_DIR }}/bin .
 
-
-
-
+      # 10) Upload artifact
       - name: Upload Portable Build
         uses: actions/upload-artifact@v4
         with:
-          name: apptest-portable-windows
-          path: ${{ env.INSTALL_DIR }}\apptest_portable.zip
-      
+          name: apptest-portable-linux
+          path: apptest_linux_portable.tar.gz
+
