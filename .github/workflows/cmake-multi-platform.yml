@@ -42,14 +42,17 @@ jobs:
         run: cmake --build ${{ env.BUILD_DIR }} --config Release
 
       # ✅ Find the actual .exe created by the build and deploy Qt libs
-      - name: Bundle Qt dependencies
+           - name: Bundle Qt dependencies
         shell: pwsh
         run: |
           $EXE = Get-ChildItem -Path "${{ env.BUILD_DIR }}\Release" -Filter *.exe -Recurse | Select-Object -First 1
           if (-not $EXE) { Write-Error "❌ No .exe found in build/Release!" }
 
           Write-Host "✅ Found executable: $($EXE.FullName)"
-          & "$env:Qt6_DIR\bin\windeployqt.exe" --release --qmldir . "$($EXE.FullName)"
+
+          # Direct call, avoids variable path issues
+          windeployqt.exe --release --qmldir . "$($EXE.FullName)"
+
 
       # ✅ Prepare installer payload folder
       - name: Create installer source folder
