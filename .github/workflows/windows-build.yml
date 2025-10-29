@@ -13,6 +13,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Clean old build cache
+      run: rmdir /S /Q build
+      shell: cmd
+
     - name: Install Tools
       run: |
         choco install ninja -y
@@ -26,10 +30,10 @@ jobs:
         target: desktop
         arch: win64_msvc2022_64
 
-    - name: Configure CMake
+    - name: Configure CMake (MSVC)
       run: cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 
-    - name: Build App
+    - name: Build App (MSVC)
       run: cmake --build build --config Release
 
     - name: Deploy Qt Dependencies
