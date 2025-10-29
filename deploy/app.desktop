@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=MyApp
+Exec=apptest_qt
+Icon=app
+Categories=Utility;
