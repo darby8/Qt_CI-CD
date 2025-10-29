@@ -1,31 +1,24 @@
-!define APPNAME "apptest_qt"
-!define COMPANY "MyCompany"
-!define VERSION "1.0.0"
-!define INSTALL_DIR "$PROGRAMFILES64\${COMPANY}\${APPNAME}"
+!define APP_NAME "apptest_qt"
+!define APP_VERSION "1.0.0"
+!define COMPANY_NAME "Reak"
+!define INSTALL_DIR "$PROGRAMFILES\${APP_NAME}"
 
-OutFile "${APPNAME}_Setup_${VERSION}.exe"
+Outfile "${APP_NAME}-Installer-${APP_VERSION}.exe"
 InstallDir "${INSTALL_DIR}"
-RequestExecutionLevel admin
 
-; --- Correct Page Order ---
 Page directory
 Page instfiles
-UninstPage uninstConfirm
-UninstPage instfiles
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  File /r "install\*.*"
 
-  ; Create desktop shortcut
-  CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\bin\${APPNAME}.exe"
+  File /r "build\*.*"
 
-  ; This line was missing before -> creates uninstaller
-  WriteUninstaller "$INSTDIR\Uninstall.exe"
+  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_NAME}.exe"
 SectionEnd
 
 Section "Uninstall"
-  Delete "$DESKTOP\${APPNAME}.lnk"
   RMDir /r "$INSTDIR"
+  Delete "$DESKTOP\${APP_NAME}.lnk"
 SectionEnd
 

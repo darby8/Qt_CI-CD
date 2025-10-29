@@ -1,65 +1,48 @@
-name: Build Qt App (Windows)
+name: Build Windows Installer
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
-    env:
-      BUILD_DIR: build
-      INSTALL_DIR: install
-      EXE_NAME: apptest_qt.exe   # ✅ Your executable name
-      QT_VERSION: 6.8.3          # ✅ Set your Qt version
-      GENERATOR: "Visual Studio 17 2022"
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          choco install ninja -y
-          choco install nsis -y
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: 6.8.3
+        host: windows
+        target: desktop
+        arch: win64_msvc2019_64
 
-      - name: Set up Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ env.QT_VERSION }}
-          host: windows
-          target: desktop
-          arch: win64_msvc2022_64
-          cache: true
+    - name: Install NSIS
+      run: choco install nsis -y
 
-      - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v1
+    - name: Configure (CMake)
+      run: cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 
-      - name: Configure CMake
-        run: cmake -B ${{ env.BUILD_DIR }} -G "${{ env.GENERATOR }}" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -A x64 -DCMAKE_BUILD_TYPE=Release
+    - name: Build (Release)
+      run: cmake --build build --config Release
 
-      - name: Build
-        run: cmake --build ${{ env.BUILD_DIR }} --config Release
+    - name: Deploy Qt Dependencies
+      run: |
+        set PATH=%PATH%;%Qt6_DIR%/bin
+        windeployqt --release build\apptest_qt.exe
 
-      - name: Install
-        run: cmake --install ${{ env.BUILD_DIR }} --config Release
+    - name: Create Installer
+      run: |
+        "C:\Program Files (x86)\NSIS\makensis.exe" installer\installer.nsi
 
-      - name: Bundle Qt Dependencies
-        run: |
-          windeployqt "${{ env.INSTALL_DIR }}\bin\${{ env.EXE_NAME }}" --release
-
-      - name: Build Installer (.exe)
-        shell: pwsh
-        run: |
-          & "C:\Program Files (x86)\NSIS\makensis.exe" "installer.nsi"
-
-      - name: Upload Installer Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows-Installer
-          path: "*.exe"
+    - name: Upload Installer Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows-Installer
+        path: apptest_qt-Installer-*.exe
 
