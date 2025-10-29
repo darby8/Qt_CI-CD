@@ -1,4 +1,4 @@
-name: Build Qt App (Windows)
+name: Build Qt App
 
 on:
   push:
@@ -6,45 +6,46 @@ on:
   workflow_dispatch:
 
 jobs:
-	linux-build:
-	  runs-on: ubuntu-latest
 
-	  steps:
-	    - uses: actions/checkout@v3
+  linux-build:
+    runs-on: ubuntu-latest
 
-	    - name: Install dependencies
-	      run: |
-		sudo apt-get update
-		sudo apt-get install -y build-essential mesa-common-dev libglu1-mesa-dev libglib2.0-dev
+    steps:
+      - uses: actions/checkout@v3
 
-	    - name: Install Python & aqt
-	      run: |
-		python3 -m pip install --upgrade pip
-		pip install aqtinstall
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential mesa-common-dev libglu1-mesa-dev libglib2.0-dev
 
-	    - name: Install Qt 6.5.3 for Linux
-	      run: |
-		aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
+      - name: Install Python & aqt
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install aqtinstall
 
-	    - name: Configure CMake
-	      run: |
-		cmake -S . -B build -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64
+      - name: Install Qt 6.5.3 for Linux
+        run: |
+          aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
 
-	    - name: Build
-	      run: |
-		cmake --build build --parallel
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64
 
-	    - name: Package .AppImage
-	      run: |
-		mkdir -p appdir/usr/bin
-		cp build/YourAppExecutableName appdir/usr/bin/
-		chmod +x appdir/usr/bin/YourAppExecutableName
+      - name: Build
+        run: |
+          cmake --build build --parallel
 
-		wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-		chmod +x linuxdeploy-x86_64.AppImage
+      - name: Package .AppImage
+        run: |
+          mkdir -p appdir/usr/bin
+          # ⬅️ REPLACE this with your real binary name
+          cp build/YourAppExecutableName appdir/usr/bin/
+          chmod +x appdir/usr/bin/YourAppExecutableName
 
-		./linuxdeploy-x86_64.AppImage --appdir appdir --output appimage
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
 
+          ./linuxdeploy-x86_64.AppImage --appdir appdir --output appimage
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
