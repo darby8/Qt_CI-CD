@@ -1,30 +1,91 @@
-name: Publish Windows Installer
+name: Build Qt QML Application (Windows)
+
 on:
- pull_request:
- push:
-   branches: main
+  push:
+    branches:
+      - main # or your main development branch
+  pull_request:
+    branches:
+      - main # or your main development branch
+
+
+env:
+  VERSION: "1.0.0"
+  EXECUTABLE: "QtApp"
+  APPLICATION: "apptest_qt"
+  REPO_NAME: "Qt_CI-CD "
+  UNIXNAME: "qt-app"
+  CMAKE_PROJECT: "CMakeLists.txt"
+  QML_DIR_NIX: "assets/qml"
+  QML_DIR_WIN: "assets\\qml"
+
+  QT_VERSION: 6.8.3
+  CMAKE: Cmake
+  CORES: 12
+
 jobs:
-  build-and-promote:
+   build-windows:
     runs-on: windows-latest
+    name: '🧊 Windows'
     steps:
-      - id: Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: 5.15.2
-          tools: tools_cmake tools_ifw
-          add-tools-to-path: true
-      - uses: actions/checkout@v4
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
-      - id: install_conan
-        uses: turtlebrowser/get-conan@main
-        with:
-          version: 1.65.0
-      - id: build
-        run: cd $Env:GITHUB_WORKSPACE/installer && ./createInstaller.bat 5.15.2
-      - name: Upload installer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ForscapeInstaller_Win64.exe
-          path: ${{ github.workspace }}/installer/ForscapeInstaller_Win64.exe
-          if-no-files-found: error
+
+    - name: '🧰 Checkout'
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: '⚙️ Configure MSVC'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+        spectre: true
+
+    - name: '⚙️ Cache Qt'
+      id: cache-qt
+      uses: actions/cache@v1
+      with:
+        path: ../Qt
+        key: ${{runner.os}}-qtcachedir-${{env.QT_VERSION}}
+
+    - name: '⚙️ Install Qt'
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: ${{env.QT_VERSION}}
+        modules: ${{env.QT_MODULES}}
+        aqtversion: '==2.0.0'
+        cached: ${{steps.cache-qt.outputs.cache-hit}}
+
+    - name: '🚧 Compile application'
+      run: |
+        ${{env.QMAKE}} ${{env.QMAKE_PROJECT}} CONFIG+=release PREFIX=/usr
+        nmake
+
+    # Copy Qt DLLs, compiler runtime & application icon
+    - name: '📦 Package application (windeployqt)'
+      run: |
+        mkdir bin
+        move release/${{env.EXECUTABLE}}.exe bin
+        windeployqt bin/${{env.EXECUTABLE}}.exe -qmldir="${{env.QML_DIR_WIN}}" --compiler-runtime
+        mkdir "${{env.APPLICATION}}"
+        move bin "${{env.APPLICATION}}"
+        xcopy deploy\windows\resources\icon.ico "${{env.APPLICATION}}"
+        xcopy deploy\windows\openssl\*.dll "${{env.APPLICATION}}\bin"
+        move "${{env.APPLICATION}}" deploy\windows\nsis\
+
+    - name: '📦 Make NSIS installer'
+      uses: joncloud/makensis-action@v3.6
+      with:
+        script-file: deploy/windows/nsis/setup.nsi
+
+    - name: '📦 Rename installer'
+      run: |
+        dir
+        cd deploy/windows/nsis/
+        dir
+        ren *.exe ${{env.EXECUTABLE}}-${{env.VERSION}}-Windows.exe
+
+    - name: '📤 Upload artifact: NSIS installer'
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{env.EXECUTABLE}}-${{env.VERSION}}-Windows.exe
+        path: deploy/windows/nsis/${{env.EXECUTABLE}}-${{env.VERSION}}-Windows.exe
