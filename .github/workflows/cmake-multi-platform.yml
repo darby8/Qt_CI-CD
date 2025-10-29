@@ -66,13 +66,13 @@ jobs:
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
           cat <<EOF > AppDir/usr/share/applications/app.desktop
-[Desktop Entry]
-Name=My Qt App
-Exec=$(basename "$EXE")
-Icon=app
-Type=Application
-Categories=Utility;
-EOF
+	  [Desktop Entry]
+	  Name=My Qt App
+	  Exec=$(basename "$EXE")
+	  Icon=app
+	  Type=Application
+	  Categories=Utility;
+	  EOF
 
       - name: Download LinuxDeploy + Qt plugin
         run: |
