@@ -1,25 +1,22 @@
-!define APP_NAME "apptest_qt"
-!define APP_VERSION "1.0.0"
-!define INSTALL_DIR "$PROGRAMFILES\${APP_NAME}"
+!define APPNAME "YourApp"
+!define COMPANY "YourCompany"
+!define VERSION "1.0.0"
+!define INSTALL_DIR "$PROGRAMFILES64\${COMPANY}\${APPNAME}"
 
-OutFile "${APP_NAME}-Installer-${APP_VERSION}.exe"
+OutFile "${APPNAME}_Setup_${VERSION}.exe"
 InstallDir "${INSTALL_DIR}"
-
 RequestExecutionLevel admin
 
 Page directory
 Page instfiles
-UninstPage uninstConfirm
-UninstPage instfiles
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  File /r "build\*.*"
-  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\apptest_qt.exe"
+  File /r "install\*.*"
+  CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\bin\apptest_qt.exe"
 SectionEnd
 
 Section "Uninstall"
+  Delete "$DESKTOP\${APPNAME}.lnk"
   RMDir /r "$INSTDIR"
-  Delete "$DESKTOP\${APP_NAME}.lnk"
 SectionEnd
-
