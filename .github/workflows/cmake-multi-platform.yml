@@ -53,14 +53,14 @@ jobs:
           # Direct call, avoids variable path issues
           windeployqt.exe --release --qmldir . "$($EXE.FullName)"
 
-
-
-
-       - name: Prepare installer folder
+      - name: Prepare installer folder
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path install | Out-Null
           Copy-Item -Path "${{ env.BUILD_DIR }}\Release\*" -Destination install -Recurse -Force
+
+
+
       # ✅ Prepare installer payload folder
       - name: Create installer source folder
         shell: pwsh
