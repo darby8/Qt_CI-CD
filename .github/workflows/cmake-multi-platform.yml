@@ -1,66 +1,77 @@
-linux-build:
-  runs-on: ubuntu-latest
+name: Build Qt App (Windows + Linux AppImage)
 
-  steps:
-    - uses: actions/checkout@v3
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          mesa-common-dev \
-          libglu1-mesa-dev \
-          libglib2.0-dev \
-          libxkbcommon-dev \
-          libxkbcommon-x11-dev \
-          libegl1-mesa-dev \
-          libgl1-mesa-dev \
-          patchelf
+jobs:
 
-    - name: Install Python & aqt
-      run: |
-        python3 -m pip install --upgrade pip
-        pip install aqtinstall
+  linux-build:
+    runs-on: ubuntu-latest
 
-    - name: Install Qt 6.5.3 (GCC)
-      run: |
-        aqt install-qt linux desktop 6.5.3 gcc_64 \
-          --modules qtbase qtdeclarative qtquickcontrols2 qtmultimedia qttools \
-          --outputdir $GITHUB_WORKSPACE/Qt
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Add qmake to PATH (Required for AppImage plugin)
-      run: echo "$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin" >> $GITHUB_PATH
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            mesa-common-dev \
+            libglu1-mesa-dev \
+            libglib2.0-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev \
+            patchelf \
+            wget
 
-    - name: Configure CMake
-      run: cmake -S . -B build -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64
+      - name: Install Python & aqt
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install aqtinstall
 
-    - name: Build App
-      run: cmake --build build --parallel
+      - name: Install Qt 6.5.3 (GCC)
+        run: |
+          aqt install-qt linux desktop 6.5.3 gcc_64 \
+            --modules qtbase qtdeclarative qtquickcontrols2 qtmultimedia qttools \
+            --outputdir $GITHUB_WORKSPACE/Qt
 
-    - name: Download linuxdeploy + Qt plugin
-      run: |
-        wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-        wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-        chmod +x linuxdeploy*.AppImage
+      - name: Add Qt to PATH (Required for linuxdeploy-plugin-qt)
+        run: echo "$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin" >> $GITHUB_PATH
 
-    - name: Create AppImage
-      run: |
-        APP=$(find build -maxdepth 2 -type f -executable | head -n 1)
-        echo "Found app: $APP"
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64
 
-        mkdir -p AppDir/usr/bin
-        cp "$APP" AppDir/usr/bin/
-        chmod +x AppDir/usr/bin/*
+      - name: Build Application
+        run: cmake --build build --parallel
 
-        ./linuxdeploy-x86_64.AppImage \
-          --appdir AppDir \
-          --plugin qt \
-          --output appimage
+      - name: Download linuxdeploy + Qt Plugin
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
 
-    - name: Upload AppImage
-      uses: actions/upload-artifact@v4
-      with:
-        name: Linux-AppImage
-        path: "*.AppImage"
+      - name: Create AppImage
+        run: |
+          APP=$(find build -maxdepth 2 -type f -executable | head -n 1)
+          echo "Detected App binary: $APP"
+
+          mkdir -p AppDir/usr/bin
+          cp "$APP" AppDir/usr/bin/
+          chmod +x AppDir/usr/bin/*
+
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --plugin qt \
+            --output appimage
+
+      - name: Upload Linux AppImage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-AppImage
+          path: "*.AppImage"
 
