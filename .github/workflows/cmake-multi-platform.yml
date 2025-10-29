@@ -47,7 +47,6 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      # ✅ Auto-detect your executable
       - name: Detect built executable
         id: findexe
         run: |
@@ -62,17 +61,17 @@ jobs:
           cp "$EXE" AppDir/usr/bin/
           chmod +x AppDir/usr/bin/*
 
-          # Provide your icon file: deploy/app.png
+          # Ensure your icon file exists: deploy/app.png
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
           cat <<EOF > AppDir/usr/share/applications/app.desktop
-	  [Desktop Entry]
-	  Name=My Qt App
-	  Exec=$(basename "$EXE")
-	  Icon=app
-	  Type=Application
-	  Categories=Utility;
-	  EOF
+[Desktop Entry]
+Name=My Qt App
+Exec=$(basename "$EXE")
+Icon=app
+Type=Application
+Categories=Utility;
+EOF
 
       - name: Download LinuxDeploy + Qt plugin
         run: |
@@ -80,7 +79,6 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
 
-      # ✅ **FIXED STEP**
       - name: Build AppImage
         run: |
           export QTDIR="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64"
