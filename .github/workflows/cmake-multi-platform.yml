@@ -25,10 +25,6 @@ jobs:
     - name: Add Qt to PATH
       run: echo "C:\Qt\6.8.3\msvc2022_64\bin" >> $env:GITHUB_PATH
 
-    - name: Configure (Force Ninja Multi-Config)
-      run: |
-        cmake -G "Ninja Multi-Config" -S . -B build ^
-          -DCMAKE_PREFIX_PATH="C:/Qt/6.8.3/msvc2022_64"
 
     - name: Build (Release)
       run: cmake --build build --config Release
