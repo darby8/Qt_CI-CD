@@ -3,7 +3,6 @@ name: Build Qt QML App (Windows)
 on:
   push:
     branches: [ "main" ]
-  pull_request:
 
 jobs:
   build-windows:
@@ -13,34 +12,43 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install Python (needed for aqtinstall)
+    - name: Install Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
 
-    - name: Install Qt using aqtinstall
+    - name: Install Qt
       run: |
         pip install aqtinstall
         aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 --outputdir C:\Qt
 
-    - name: Add Qt bin to PATH
+    - name: Add Qt to PATH
       run: echo "C:\Qt\6.8.3\msvc2022_64\bin" >> $env:GITHUB_PATH
 
-    - name: Configure CMake
-      run: cmake -B build -S . -DCMAKE_PREFIX_PATH="C:/Qt/6.8.3/msvc2022_64"
+    - name: Configure (Force Ninja Multi-Config)
+      run: |
+        cmake -G "Ninja Multi-Config" -S . -B build ^
+          -DCMAKE_PREFIX_PATH="C:/Qt/6.8.3/msvc2022_64"
 
-    - name: Build
+    - name: Build (Release)
       run: cmake --build build --config Release
 
-    - name: Deploy Qt Dependencies (windeployqt)
+    - name: Find EXE File
+      id: findexe
+      shell: pwsh
       run: |
-        $QT_BIN = "C:\Qt\6.8.3\msvc2022_64\bin"
-        & "$QT_BIN\windeployqt.exe" --qmldir . "build\Release\*.exe"
+        $exe = Get-ChildItem -Path "build/Release" -Filter *.exe -Recurse | Select-Object -First 1
+        if (-not $exe) { Write-Error "No executable found!" }
+        echo "exe_path=$($exe.FullName)" >> $env:GITHUB_OUTPUT
 
-    - name: Package Release Folder
-      run: Compress-Archive -Path build\Release\* -DestinationPath app-release.zip
+    - name: Deploy Qt Runtime (windeployqt)
+      run: |
+        windeployqt.exe --qmldir . "${{ steps.findexe.outputs.exe_path }}"
 
-    - name: Upload Artifact (Downloadable Build)
+    - name: Pack Release
+      run: Compress-Archive -Path build/Release/* -DestinationPath app-release.zip
+
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Windows-Release
