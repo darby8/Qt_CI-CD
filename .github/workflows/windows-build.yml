@@ -1,48 +1,30 @@
-name: Build Qt QML Application (Windows)
-
+name: Publish Windows Installer
 on:
-  push:
-    branches:
-      - main # or your main development branch
-  pull_request:
-    branches:
-      - main # or your main development branch
-
+ pull_request:
+ push:
+   branches: main
 jobs:
-  build-windows:
-    runs-on: windows-latest # Use a Windows runner
-
+  build-and-promote:
+    runs-on: windows-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4 # Action to checkout your code
-
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3 # Action to install Qt
-      with:
-        version: '5.15.2' # Specify your desired Qt version
-        target: 'desktop'
-        arch: 'win64_msvc2019_64' # Or your target architecture/compiler
-
-    - name: Configure CMake
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
-
-    - name: Build application
-      run: |
-        cd build
-        cmake --build . --config Release
-
-    - name: Deploy Qt dependencies
-      run: |
-        # Use windeployqt to collect necessary Qt DLLs and plugins
-        # Adjust paths as needed for your specific project and build output
-        cd build/Release # Or wherever your executable is built
-        "C:\Qt\5.15.2\msvc2019_64\bin\windeployqt.exe" --qmldir ../../qml --no-translations your_app_name.exe
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: qt-qml-app-windows
-        path: build/Release # Path to your built application and dependencies
+      - id: Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 5.15.2
+          tools: tools_cmake tools_ifw
+          add-tools-to-path: true
+      - uses: actions/checkout@v4
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+      - id: install_conan
+        uses: turtlebrowser/get-conan@main
+        with:
+          version: 1.65.0
+      - id: build
+        run: cd $Env:GITHUB_WORKSPACE/installer && ./createInstaller.bat 5.15.2
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForscapeInstaller_Win64.exe
+          path: ${{ github.workspace }}/installer/ForscapeInstaller_Win64.exe
+          if-no-files-found: error
