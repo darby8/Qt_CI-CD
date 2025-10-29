@@ -1,67 +1,48 @@
-name: Build Windows Installer
+name: Build Qt QML Application (Windows)
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches:
+      - main # or your main development branch
+  pull_request:
+    branches:
+      - main # or your main development branch
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-latest # Use a Windows runner
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4 # Action to checkout your code
 
-    - name: Install Tools
-      run: |
-        choco install ninja -y
-        choco install nsis -y
-
-    - name: Install Qt (MSVC 2022)
-      uses: jurplel/install-qt-action@v4
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3 # Action to install Qt
       with:
-        version: 6.8.3
-        host: windows
-        target: desktop
-        arch: win64_msvc2022_64
-        modules: qtdeclarative
-
-    - name: Setup MSVC Environment
-      shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" || ^
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        version: '5.15.2' # Specify your desired Qt version
+        target: 'desktop'
+        arch: 'win64_msvc2019_64' # Or your target architecture/compiler
 
     - name: Configure CMake
-      shell: cmd
       run: |
-        cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
 
-    - name: Build Application
-      shell: cmd
+    - name: Build application
       run: |
-        cmake --build build --config Release
+        cd build
+        cmake --build . --config Release
 
-    - name: Deploy Qt Dependencies
-      shell: cmd
+    - name: Deploy Qt dependencies
       run: |
-        windeployqt --release --qmldir=. build\apptest_qt.exe
+        # Use windeployqt to collect necessary Qt DLLs and plugins
+        # Adjust paths as needed for your specific project and build output
+        cd build/Release # Or wherever your executable is built
+        "C:\Qt\5.15.2\msvc2019_64\bin\windeployqt.exe" --qmldir ../../qml --no-translations your_app_name.exe
 
-    - name: Copy MSVC Runtime (Auto detect)
-      shell: pwsh
-      run: |
-        $redist = (Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022" -Recurse -Directory -Filter "Microsoft.VC.*.CRT" | Where-Object { $_.FullName -like "*x64*" } | Select-Object -First 1).FullName
-        Copy-Item "$redist\*.dll" build\ -Force
-
-    - name: Build Installer
-      shell: cmd
-      run: |
-        "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
-
-    - name: Upload Installer Artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Windows-Installer
-        path: apptest_qt-Installer-*.exe
-
+        name: qt-qml-app-windows
+        path: build/Release # Path to your built application and dependencies
