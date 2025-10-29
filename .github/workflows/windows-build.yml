@@ -1,91 +1,69 @@
-name: Build Qt QML Application (Windows)
+name: Build Qt App (Windows)
 
 on:
   push:
-    branches:
-      - main # or your main development branch
+    branches: [ main ]
   pull_request:
-    branches:
-      - main # or your main development branch
-
-
-env:
-  VERSION: "1.0.0"
-  EXECUTABLE: "QtApp"
-  APPLICATION: "apptest_qt"
-  REPO_NAME: "Qt_CI-CD "
-  UNIXNAME: "qt-app"
-  CMAKE_PROJECT: "CMakeLists.txt"
-  QML_DIR_NIX: "assets/qml"
-  QML_DIR_WIN: "assets\\qml"
-
-  QT_VERSION: 6.8.3
-  CMAKE: Cmake
-  CORES: 12
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-   build-windows:
+  build:
     runs-on: windows-latest
-    name: '🧊 Windows'
+
+    env:
+      BUILD_DIR: build
+      INSTALL_DIR: install
+      GENERATOR: "Ninja"
+      QT_VERSION: 6.8   # tested and available for Windows
+      QT_MODULES: qtmultimedia
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: '🧰 Checkout'
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
+      - name: Install dependencies
+        run: |
+          choco install ninja -y
+          choco install nsis -y
 
-    - name: '⚙️ Configure MSVC'
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-        spectre: true
+      # ✅ Easiest and fastest Qt setup
+      - name: Set up Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: ${{ env.QT_MODULES }}
+          cache: true
 
-    - name: '⚙️ Cache Qt'
-      id: cache-qt
-      uses: actions/cache@v1
-      with:
-        path: ../Qt
-        key: ${{runner.os}}-qtcachedir-${{env.QT_VERSION}}
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v1
 
-    - name: '⚙️ Install Qt'
-      uses: jurplel/install-qt-action@v2
-      with:
-        version: ${{env.QT_VERSION}}
-        modules: ${{env.QT_MODULES}}
-        aqtversion: '==2.0.0'
-        cached: ${{steps.cache-qt.outputs.cache-hit}}
+      - name: Configure CMake
+        run: cmake -B build -G "Visual Studio 17 2022" -S . -DCMAKE_INSTALL_PREFIX="${{ env.INSTALL_DIR }}" -A x64 -DCMAKE_BUILD_TYPE=Release
 
-    - name: '🚧 Compile application'
-      run: |
-        ${{env.QMAKE}} ${{env.QMAKE_PROJECT}} CONFIG+=release PREFIX=/usr
-        nmake
+      - name: Build
+        run: cmake --build ${{ env.BUILD_DIR }} --config Release
 
-    # Copy Qt DLLs, compiler runtime & application icon
-    - name: '📦 Package application (windeployqt)'
-      run: |
-        mkdir bin
-        move release/${{env.EXECUTABLE}}.exe bin
-        windeployqt bin/${{env.EXECUTABLE}}.exe -qmldir="${{env.QML_DIR_WIN}}" --compiler-runtime
-        mkdir "${{env.APPLICATION}}"
-        move bin "${{env.APPLICATION}}"
-        xcopy deploy\windows\resources\icon.ico "${{env.APPLICATION}}"
-        xcopy deploy\windows\openssl\*.dll "${{env.APPLICATION}}\bin"
-        move "${{env.APPLICATION}}" deploy\windows\nsis\
+      - name: Install
+        run: cmake --install ${{ env.BUILD_DIR }} --config Release
 
-    - name: '📦 Make NSIS installer'
-      uses: joncloud/makensis-action@v3.6
-      with:
-        script-file: deploy/windows/nsis/setup.nsi
+      - name: Bundle Qt dependencies
+        run: |
+          windeployqt "${{ env.INSTALL_DIR }}\bin\apptest_qt.exe" --release
 
-    - name: '📦 Rename installer'
-      run: |
-        dir
-        cd deploy/windows/nsis/
-        dir
-        ren *.exe ${{env.EXECUTABLE}}-${{env.VERSION}}-Windows.exe
+      - name: Refresh environment
+        run: refreshenv
 
-    - name: '📤 Upload artifact: NSIS installer'
-      uses: actions/upload-artifact@v2
-      with:
-        name: ${{env.EXECUTABLE}}-${{env.VERSION}}-Windows.exe
-        path: deploy/windows/nsis/${{env.EXECUTABLE}}-${{env.VERSION}}-Windows.exe
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /V2 installer.nsi
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Installer
+          path: "*.exe"
