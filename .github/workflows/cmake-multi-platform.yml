@@ -26,14 +26,17 @@ jobs:
             libgl1-mesa-dev \
             patchelf
 
+      - name: Remove old Qt (if any)
+        run: rm -rf Qt
+
       - name: Install Python & aqt
         run: |
           python3 -m pip install --upgrade pip
           pip install aqtinstall
 
-      - name: Install Qt 6.5.3 with qttools
+      - name: Install Qt 6.5.3 for Linux
         run: |
-          aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt --modules qttools
+          aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
 
       - name: Configure CMake
         run: |
@@ -44,6 +47,7 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
+      # ✅ Auto-detect your executable
       - name: Detect built executable
         id: findexe
         run: |
@@ -58,8 +62,10 @@ jobs:
           cp "$EXE" AppDir/usr/bin/
           chmod +x AppDir/usr/bin/*
 
+          # Provide your own icon as icon.png in project root
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
+          # Desktop entry
           cat <<EOF > AppDir/usr/share/applications/app.desktop
           [Desktop Entry]
           Name=My Qt App
@@ -78,13 +84,15 @@ jobs:
       - name: Build AppImage
         env:
           QMAKE: ${{ github.workspace }}/Qt/6.5.3/gcc_64/bin/qmake
-          LD_LIBRARY_PATH: ${{ github.workspace }}/Qt/6.5.3/gcc_64/lib
         run: |
+          chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
+
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: Linux-AppImage
           path: "*.AppImage"
+
 
