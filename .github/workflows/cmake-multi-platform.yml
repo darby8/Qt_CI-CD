@@ -42,9 +42,7 @@ jobs:
         run: |
           cmake -S . -B build \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DQT_QML_OUTPUT_DIRECTORY=AppDir/usr/qml
-
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel
