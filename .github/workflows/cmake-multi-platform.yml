@@ -1,3 +1,10 @@
+name: Linux Qt Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
 jobs:
   linux-build:
     runs-on: ubuntu-latest
@@ -32,7 +39,7 @@ jobs:
             wget \
             curl
 
-      - name: Install Python & pip   # ✅ Fix here
+      - name: Install Python & pip
         run: |
           apt-get update
           apt-get install -y python3 python3-pip
@@ -41,7 +48,6 @@ jobs:
         run: |
           pip3 install --upgrade pip
           pip3 install aqtinstall
-
 
       - name: Install Qt 6.5.3 for Linux
         run: |
@@ -56,7 +62,6 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      # ✅ Auto-detect your executable
       - name: Detect built executable
         id: findexe
         run: |
@@ -67,14 +72,9 @@ jobs:
       - name: Add desktop + icon metadata
         run: |
           mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
-
           cp "$EXE" AppDir/usr/bin/
           chmod +x AppDir/usr/bin/*
-
-          # Provide your own icon as icon.png in project root
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
-
-          # Desktop entry
           cat <<EOF > AppDir/usr/share/applications/app.desktop
           [Desktop Entry]
           Name=My Qt App
@@ -92,8 +92,8 @@ jobs:
 
       - name: Install missing XCB dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          apt-get update
+          apt-get install -y \
             libxcb-cursor0 \
             libxcb-xinerama0 \
             libxcb-util1 \
@@ -113,13 +113,9 @@ jobs:
             -bundle-non-qt-libs \
             -extra-plugins=imageformats/libqsvg.so
 
-
-
-
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: Linux-AppImage
           path: "*.AppImage"
-
 
