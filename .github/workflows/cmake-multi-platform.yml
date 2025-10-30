@@ -87,6 +87,7 @@ jobs:
 
           ./appimagetool-x86_64.AppImage AppDir
 
+
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
