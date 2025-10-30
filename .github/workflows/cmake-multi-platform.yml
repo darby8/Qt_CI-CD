@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Prepare Environment
+      - name: Prepare environment
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
@@ -29,33 +29,53 @@ jobs:
           apt-get install -y \
             build-essential \
             cmake \
-            mesa-common-dev \
-            libglu1-mesa-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev \
-            libegl1-mesa-dev \
-            libgl1-mesa-dev \
+            wget \
+            curl \
+            patchelf \
+            python3 \
+            python3-pip \
             libglib2.0-0 \
             libglib2.0-dev \
             libdbus-1-dev \
             libfontconfig1-dev \
-            libmysqlclient-dev \
-            patchelf \
-            wget \
-            curl
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev \
+            libdbus-1-3
 
-      - name: Install Python & pip
+      - name: Install Qt XCB & GUI dependencies
         run: |
-          apt-get install -y python3 python3-pip
+          apt-get update
+          apt-get install -y \
+            libx11-xcb1 \
+            libxcb1 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-sync1 \
+            libxcb-util1 \
+            libxcb-xfixes0 \
+            libxcb-xinerama0 \
+            libxcb-xkb1 \
+            libglu1-mesa
+
+      - name: Install MySQL client (dev)
+        run: |
+          apt-get update
+          apt-get install -y libmysqlclient-dev
 
       - name: Install aqt
-        run: |
-          pip3 install --upgrade pip
-          pip3 install aqtinstall
+        run: pip3 install --upgrade pip && pip3 install aqtinstall
 
       - name: Install Qt 6.5.3 for Linux
-        run: |
-          aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
+        run: aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
 
       - name: Configure CMake
         run: |
@@ -73,13 +93,16 @@ jobs:
           echo "EXE=$EXE" >> $GITHUB_ENV
           echo "Found executable: $EXE"
 
-      - name: Setup AppDir structure
+      - name: Create AppDir structure
         run: |
-          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
           cp "$EXE" AppDir/usr/bin/
           chmod +x AppDir/usr/bin/*
-          cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/MyQtApp.png
-          cat <<EOF > AppDir/usr/share/applications/MyQtApp.desktop
+          # replace deploy/app.png with your icon path if different
+          if [ -f deploy/app.png ]; then
+            cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/MyQtApp.png
+          fi
+          cat > AppDir/usr/share/applications/MyQtApp.desktop <<'EOF'
 [Desktop Entry]
 Name=My Qt App
 Exec=$(basename "$EXE")
@@ -88,14 +111,12 @@ Type=Application
 Categories=Utility;
 EOF
 
-      - name: Download linuxdeploy + plugin + linuxdeployqt
+      - name: Download linuxdeployqt
         run: |
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
-          chmod +x linuxdeploy*.AppImage
+          chmod +x linuxdeployqt
 
-      - name: Build AppImage (No FUSE mode)
+      - name: Build AppImage (no FUSE)
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
