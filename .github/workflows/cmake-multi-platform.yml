@@ -59,14 +59,14 @@ jobs:
 
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
-          cat <<EOF > AppDir/usr/share/applications/apptest_qt.desktop
+          cat << 'EOF' > AppDir/usr/share/applications/apptest_qt.desktop
 [Desktop Entry]
 Name=apptest_qt
 Exec=apptest_qt
 Icon=app
 Type=Application
 Categories=Utility;
-'EOF'
+EOF
 
       - name: Download LinuxDeploy + Qt Plugin + AppImageTool
         run: |
