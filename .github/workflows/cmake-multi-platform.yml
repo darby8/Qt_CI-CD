@@ -1,74 +1,122 @@
-name: Build Qt AppImage (Linux)
+name: Linux Qt Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-linux:
+  linux-build:
     runs-on: ubuntu-latest
-    env:
-      QT_VERSION: "6.5.3"
-      APP_NAME: "MyQtApp"
+    container:
+      image: ubuntu:20.04
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Install Dependencies
+      # --- SYSTEM SETUP ---
+      - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake fuse wget patchelf libfuse2
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y \
+            build-essential \
+            cmake \
+            wget \
+            patchelf \
+            python3 python3-pip \
+            libdbus-1-dev \
+            libfontconfig1-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev
 
-      - name: Install Qt
+      # --- FIX libqxcb MISSING LIBRARIES ---
+      - name: Install Qt XCB GUI dependencies
         run: |
-          pip install aqtinstall
-          aqt install-qt linux desktop $QT_VERSION gcc_64 --outputdir $HOME/Qt
+          apt-get install -y \
+            libx11-xcb1 \
+            libxcb1 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-sync1 \
+            libxcb-util1 \
+            libxcb-xfixes0 \
+            libxcb-xinerama0 \
+            libxcb-xkb1
 
-      - name: Configure & Build
+      # --- INSTALL QT ---
+      - name: Install aqt
+        run: pip3 install aqtinstall
+
+      - name: Install Qt 6.5.3
+        run: aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
+
+      # --- BUILD PROJECT ---
+      - name: Configure CMake
         run: |
-          mkdir build && cd build
-          cmake .. -DCMAKE_PREFIX_PATH="$HOME/Qt/$QT_VERSION/gcc_64"
-          cmake --build . --config Release
+          cmake -S . -B build \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64 \
+            -DCMAKE_BUILD_TYPE=Release
 
-      - name: Set Executable Path
-        run: echo "EXE=$(find build -type f -executable | head -n 1)" >> $GITHUB_ENV
+      - name: Build
+        run: cmake --build build --parallel
 
+      - name: Detect Built Executable
+        id: findexe
+        run: |
+          EXE=$(find build -maxdepth 3 -type f -executable | head -n 1)
+          echo "EXE=$EXE" >> $GITHUB_ENV
+          echo "Executable detected: $EXE"
+
+      # --- PACKAGE STRUCTURE ---
       - name: Create AppDir structure
         run: |
           mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
+          cp "$EXE" AppDir/usr/bin/MyQtApp
+          chmod +x AppDir/usr/bin/MyQtApp
 
-          cp "$EXE" AppDir/usr/bin/$APP_NAME
-          chmod +x AppDir/usr/bin/$APP_NAME
+          # Icon (replace deploy/app.png with your actual icon)
+          cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/MyQtApp.png
 
-          # Icon
-          cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png
-
-          # Desktop File
-          cat <<EOF > AppDir/usr/share/applications/$APP_NAME.desktop
+          # Desktop file
+          cat <<EOF > AppDir/usr/share/applications/MyQtApp.desktop
           [Desktop Entry]
-          Name=$APP_NAME
-          Exec=$APP_NAME
-          Icon=$APP_NAME
+          Name=My Qt App
+          Exec=MyQtApp
+          Icon=MyQtApp
           Type=Application
           Categories=Utility;
           EOF
 
+      # --- DOWNLOAD linuxdeployqt ---
       - name: Download linuxdeployqt
         run: |
-          wget -O linuxdeployqt https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-x86_64.AppImage
+          wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
           chmod +x linuxdeployqt
 
-      - name: Deploy AppDir
+      # --- BUILD APPIMAGE ---
+      - name: Build AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
-          ./linuxdeployqt AppDir/usr/share/applications/$APP_NAME.desktop \
-            -qmldir=. \
+          export PATH="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin:$PATH"
+          ./linuxdeployqt AppDir/usr/share/applications/MyQtApp.desktop \
+            -bundle-non-qt-libs \
             -appimage
 
-      - name: Upload AppImage Artifact
-        uses: actions/upload-artifact@v3
+      # --- SAVE ARTIFACT ---
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APP_NAME }}-AppImage
-          path: ./*.AppImage
+          name: MyQtApp-AppImage
+          path: "*.AppImage"
 
