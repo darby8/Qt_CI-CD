@@ -72,7 +72,9 @@ jobs:
           apt-get install -y libmysqlclient-dev
 
       - name: Install aqt
-        run: pip3 install --upgrade pip && pip3 install aqtinstall
+        run: |
+          pip3 install --upgrade pip
+          pip3 install aqtinstall
 
       - name: Install Qt 6.5.3 for Linux
         run: aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
@@ -98,11 +100,10 @@ jobs:
           mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
           cp "$EXE" AppDir/usr/bin/
           chmod +x AppDir/usr/bin/*
-          # replace deploy/app.png with your icon path if different
           if [ -f deploy/app.png ]; then
             cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/MyQtApp.png
           fi
-          cat > AppDir/usr/share/applications/MyQtApp.desktop <<'EOF'
+          cat > AppDir/usr/share/applications/MyQtApp.desktop <<EOF
 [Desktop Entry]
 Name=My Qt App
 Exec=$(basename "$EXE")
