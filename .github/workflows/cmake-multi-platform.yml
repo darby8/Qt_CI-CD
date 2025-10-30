@@ -28,23 +28,20 @@ jobs:
           apt-get update
           apt-get install -y \
             build-essential \
-	    cmake \
-	    mesa-common-dev \
-	    libglu1-mesa-dev \
-	    libxkbcommon-dev \
-	    libxkbcommon-x11-dev \
-	    libegl1-mesa-dev \
-	    libgl1-mesa-dev \
-	    libglib2.0-0 \
-	    libglib2.0-dev \
-	    libdbus-1-dev \
-	    libfontconfig1-dev \
-	    patchelf \
-	    wget \
-	    curl
-
-
-
+            cmake \
+            mesa-common-dev \
+            libglu1-mesa-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev \
+            libglib2.0-0 \
+            libglib2.0-dev \
+            libdbus-1-dev \
+            libfontconfig1-dev \
+            patchelf \
+            wget \
+            curl
 
       - name: Install Python & pip
         run: |
