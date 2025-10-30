@@ -1,4 +1,4 @@
-name: Build Qt App
+name: Build Qt AppImage
 
 on:
   push:
@@ -23,7 +23,6 @@ jobs:
             fuse \
             libgl1-mesa-dev \
             libxkbcommon-x11-0 \
-            linuxdeploy qt6ct libxcb-cursor0 libxcb-xinerama0 \
             patchelf
 
       - name: Install aqt + Qt
@@ -32,11 +31,8 @@ jobs:
           pip install aqtinstall
           aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
 
-      - name: Configure CMake
-        run: |
-          cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64 \
-            -DCMAKE_BUILD_TYPE=Release
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64 -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel
@@ -58,31 +54,23 @@ jobs:
           chmod +x AppDir/usr/bin/apptest_qt
 
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
+          cp deploy/app.desktop AppDir/usr/share/applications/apptest_qt.desktop
 
-          cat << 'EOF' > AppDir/usr/share/applications/apptest_qt.desktop
-[Desktop Entry]
-Name=apptest_qt
-Exec=apptest_qt
-Icon=app
-Type=Application
-Categories=Utility;
-EOF
-
-      - name: Download LinuxDeploy + Qt Plugin + AppImageTool
+      - name: Download LinuxDeploy tools
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x *.AppImage
 
-      - name: Deploy Qt and Create AppImage
+      - name: Deploy Qt + Create AppImage
         env:
           QT_DIR: ${{ github.workspace }}/Qt/6.5.3/gcc_64
         run: |
           export QML_IMPORT_PATH="$QT_DIR/qml"
           export QT_PLUGIN_PATH="$QT_DIR/plugins"
 
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir -e "$EXE" -d AppDir/usr/share/applications/apptest_qt.desktop -i AppDir/usr/share/icons/hicolor/256x256/apps/app.png
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir
           ./linuxdeploy-plugin-qt-x86_64.AppImage --appdir AppDir --qt-path="$QT_DIR"
           ./appimagetool-x86_64.AppImage AppDir
 
