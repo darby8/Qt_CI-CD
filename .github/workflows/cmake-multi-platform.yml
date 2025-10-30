@@ -108,14 +108,16 @@ jobs:
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage" -O linuxdeployqt
           chmod +x linuxdeployqt
 
-      - name: Build AppImage using linuxdeployqt
+      - name: Build AppImage using linuxdeployqt (no FUSE)
         env:
           QMAKE: ${{ github.workspace }}/Qt/6.5.3/gcc_64/bin/qmake
+          APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
           ./linuxdeployqt AppDir/usr/share/applications/*.desktop \
             -appimage \
             -bundle-non-qt-libs \
             -extra-plugins=imageformats/libqsvg.so
+
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
