@@ -1,4 +1,4 @@
-name: Linux Qt Build
+name: Linux Qt AppImage Build
 
 on:
   push:
@@ -14,59 +14,73 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Prepare Environment (locale fix)
+      - name: Install Dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y tzdata locales
-          locale-gen en_US.UTF-8
-          update-locale LANG=en_US.UTF-8
-
-      - name: Install System Dependencies
-        run: |
           apt-get update
           apt-get install -y \
             build-essential \
             cmake \
+            ninja-build \
+            git \
+            wget \
+            curl \
+            patchelf \
+            libgl1-mesa-dev \
             mesa-common-dev \
             libglu1-mesa-dev \
             libxkbcommon-dev \
+            libxkbcommon-x11-dev \
             libx11-xcb1 \
+            libxcb1 \
             libxcb-cursor0 \
             libxcb-xinerama0 \
+            libxcb-shape0 \
+            libxcb-render-util0 \
+            libxcb-keysyms1 \
+            libxcb-icccm4 \
+            libxcb-image0 \
             libxcb-util1 \
-            libglib2.0-dev \
+            libxcb-randr0 \
+            libxcb-ewmh2 \
+            libxcb-sync1 \
+            libgbm-dev \
+            libegl1-mesa \
+            libegl1-mesa-dev \
+            libgles2-mesa \
+            libgles2-mesa-dev \
             libdbus-1-dev \
+            libglib2.0-dev \
             libfontconfig1-dev \
-            wget \
-            curl \
-            patchelf
+            libfreetype6-dev
 
-      - name: Install Python & aqt
+      - name: Install Python + aqt
         run: |
           apt-get install -y python3 python3-pip
           pip3 install --upgrade pip
           pip3 install aqtinstall
 
-      - name: Install Qt 6.5.3 (Linux GCC)
+      - name: Install Qt 6.5.3
         run: |
           aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
+          aqt install-qt linux desktop 6.5.3 gcc_64 -m qtquickcontrols2 qtsvg --outputdir Qt
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build \
+          cmake -S . -B build -G Ninja \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64 \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQT_FEATURE_sql_mysql=OFF
 
-      - name: Build Project
+      - name: Build
         run: cmake --build build --parallel
 
-      - name: Detect Built Executable
+      - name: Detect compiled binary
         id: findexe
         run: |
           EXE=$(find build -maxdepth 2 -type f -executable | head -n 1)
           echo "EXE=$EXE" >> $GITHUB_ENV
-          echo "Detected executable: $EXE"
+          echo "Found executable: $EXE"
 
       - name: Create AppDir structure
         run: |
@@ -90,20 +104,19 @@ jobs:
           wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
           chmod +x linuxdeployqt
 
-      - name: Build AppImage (exclude MySQL driver)
+      - name: Build AppImage
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
-          export PATH="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin:$PATH"
+          export PATH=$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin:$PATH
           ./linuxdeployqt AppDir/usr/share/applications/MyQtApp.desktop \
-            -qmldir=. \
-            -exclude-libs=libqsqlmysql.so \
             -bundle-non-qt-libs \
+            -extra-plugins=imageformats/libqsvg.so \
             -appimage
 
-      - name: Upload AppImage Artifact
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: Linux-AppImage
+          name: MyQtApp-AppImage
           path: "*.AppImage"
 
