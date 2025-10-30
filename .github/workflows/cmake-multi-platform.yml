@@ -7,7 +7,10 @@ on:
 
 jobs:
   linux-build:
+    
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
 
     steps:
       - uses: actions/checkout@v3
