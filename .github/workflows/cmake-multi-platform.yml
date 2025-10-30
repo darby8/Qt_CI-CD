@@ -10,8 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Install system dependencies
         run: |
@@ -19,17 +18,25 @@ jobs:
           sudo apt-get install -y \
             build-essential \
             cmake \
-            wget \
-            fuse \
+            mesa-common-dev \
+            libglu1-mesa-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
             libgl1-mesa-dev \
-            libxkbcommon-x11-0 \
             patchelf
 
-      - name: Install aqt + Qt
+      - name: Remove old Qt (if any)
+        run: rm -rf Qt
+
+      - name: Install Python & aqt
         run: |
           python3 -m pip install --upgrade pip
           pip install aqtinstall
-          aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt --modules qtbase
+
+      - name: Install Qt 6.5.3 for Linux
+        run: |
+          aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
 
       - name: Configure CMake
         run: |
@@ -40,47 +47,61 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Detect executable
-        id: exe
+      # ✅ Auto-detect your executable
+      - name: Detect built executable
+        id: findexe
         run: |
-          EXE=$(find build -maxdepth 2 -type f -executable -name "apptest_qt")
+          EXE=$(find build -maxdepth 2 -type f -executable | head -n 1)
           echo "EXE=$EXE" >> $GITHUB_ENV
-          echo "Found: $EXE"
+          echo "Found executable: $EXE"
 
-      - name: Prepare AppDir
+      - name: Add desktop + icon metadata
         run: |
-          mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/share/applications
-          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
 
-          cp "$EXE" AppDir/usr/bin/apptest_qt
-          chmod +x AppDir/usr/bin/apptest_qt
+          cp "$EXE" AppDir/usr/bin/
+          chmod +x AppDir/usr/bin/*
 
+          # Provide your own icon as icon.png in project root
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
-          cp deploy/app.desktop AppDir/usr/share/applications/app.desktop
 
-      - name: Download LinuxDeploy + Qt Plugin + AppImageTool
+          # Desktop entry
+          cat <<EOF > AppDir/usr/share/applications/app.desktop
+          [Desktop Entry]
+          Name=My Qt App
+          Exec=$(basename "$EXE")
+          Icon=app
+          Type=Application
+          Categories=Utility;
+          EOF
+
+      - name: Download LinuxDeploy + Qt plugin
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x *.AppImage
+          chmod +x linuxdeploy*.AppImage
 
-      - name: Deploy Qt and Create AppImage
-        env:
-          QT_DIR: ${{ github.workspace }}/Qt/6.5.3/gcc_64
+      - name: Install missing XCB dependencies
         run: |
-          export QML_IMPORT_PATH="$QT_DIR/qml"
-          export QT_PLUGIN_PATH="$QT_DIR/plugins"
-          export QMAKE="$QT_DIR/bin/qmake"
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxcb-cursor0 \
+            libxcb-xinerama0 \
+            libxcb-util1 \
+            libx11-xcb1
 
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir
-          ./linuxdeploy-plugin-qt-x86_64.AppImage --appdir AppDir --qt-path "$QT_DIR"
-          ./appimagetool-x86_64.AppImage AppDir
+      - name: Build AppImage
+        env:
+          QMAKE: ${{ github.workspace }}/Qt/6.5.3/gcc_64/bin/qmake
+        run: |
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
 
-      - name: Upload AppImage
+
+
+      - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: apptest_qt-AppImage
+          name: Linux-AppImage
           path: "*.AppImage"
+
 
