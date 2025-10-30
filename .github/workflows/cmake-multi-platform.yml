@@ -85,7 +85,6 @@ jobs:
             --appdir AppDir \
             --qt-path "$QT_DIR"
 
-          ./appimagetool-x86_64.AppImage AppDir
 
 
       - name: Upload AppImage
