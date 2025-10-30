@@ -74,6 +74,7 @@ jobs:
         run: |
           export QML_IMPORT_PATH="$QT_DIR/qml"
           export QT_PLUGIN_PATH="$QT_DIR/plugins"
+          export QMAKE="$QT_DIR/bin/qmake"
 
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
