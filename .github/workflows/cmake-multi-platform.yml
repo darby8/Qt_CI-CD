@@ -10,34 +10,31 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout project
+      - name: Checkout source
         uses: actions/checkout@v3
 
-      - name: Install Qt using aqt
+      - name: Install Qt 6.5.3
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.5.3'
-          host: 'linux'
-          target: 'desktop'
-          arch: 'gcc_64'
-          modules: 'qtquick'
+          version: "6.5.3"
+          host: linux
+          target: desktop
+          arch: gcc_64
+          modules: qtquick
 
-      - name: Install dependencies
+      - name: Install required system libs
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libfuse2 \
-            patchelf \
-            libxcb-cursor0
+          sudo apt-get install -y libfuse2 patchelf libxcb-cursor0
 
-      - name: Configure & Build (Release)
+      - name: Configure and build (Release)
         run: |
           mkdir -p build
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . --config Release
 
-      - name: Set EXE variable
+      - name: Set EXE path
         run: echo "EXE=build/apptest_qt" >> $GITHUB_ENV
 
       - name: Download deployment tools
@@ -45,12 +42,9 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x linuxdeploy-*.AppImage appimagetool-x86_64.AppImage
 
-          chmod +x linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-
-      - name: Prepare AppDir metadata
+      - name: Prepare AppDir
         run: |
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
@@ -74,8 +68,7 @@ EOF
           QT_DIR="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64"
           QML_PATH="build/Desktop_Qt_6_5_3_GCC_64bit-Release/test_qt"
 
-          ./linuxdeploy-x86_64.AppImage \
-            --appdir AppDir
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir
 
           ./linuxdeploy-plugin-qt-x86_64.AppImage \
             --appdir AppDir \
@@ -84,7 +77,7 @@ EOF
 
           ./appimagetool-x86_64.AppImage AppDir
 
-      - name: Upload AppImage artifact
+      - name: Upload AppImage
         uses: actions/upload-artifact@v3
         with:
           name: apptest_qt-AppImage
