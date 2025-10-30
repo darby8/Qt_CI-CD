@@ -77,13 +77,11 @@ jobs:
 
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
-            -e "$EXE" \
-            -d AppDir/usr/share/applications/app.desktop \
-            -i AppDir/usr/share/icons/hicolor/256x256/apps/app.png
+            --desktop-file AppDir/usr/share/applications/app.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/app.png \
+            --output appimage \
+            --plugin qt
 
-          ./linuxdeploy-plugin-qt-x86_64.AppImage \
-            --appdir AppDir \
-            --qt-path "$QT_DIR"
 
 
 
