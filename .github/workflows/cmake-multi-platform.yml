@@ -44,11 +44,14 @@ jobs:
             libxcb-cursor0 libxcb-xinerama0 libxcb-util1 libx11-xcb1
             
             
-      - name: Install missing XCB / X11 libraries (fix libqxcb.so deps)
+      - name: Install required X11/XCB libraries
         run: |
-          apt-get install -y \
+          sudo apt-get install -y \
             libxrender1 \
             libxrandr2 \
+            libegl1 \
+            libglu1-mesa \
+            libgl1-mesa-dev \
             libxcb-render-util0 \
             libxcb-render0 \
             libxcb-image0 \
@@ -58,7 +61,10 @@ jobs:
             libxcb-xfixes0 \
             libxcb-sync1 \
             libxcb-randr0 \
-            libxcb-util1
+            libxcb-util1 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libxcb1-dev
 
 
       - name: Install PostgreSQL runtime (fixes libpq.so.5 not found)
@@ -120,11 +126,10 @@ jobs:
           chmod +x linuxdeployqt
 
 
-      - name: Install fuse2 (optional speed boost)
-        run: |
-          apt-get install -y fuse
 
       - name: Build AppImage (includes PostgreSQL driver)
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
           export PATH="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin:$PATH"
           ./linuxdeployqt AppDir/usr/share/applications/MyQtApp.desktop \
