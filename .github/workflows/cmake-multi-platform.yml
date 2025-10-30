@@ -32,7 +32,10 @@ jobs:
             libegl1-mesa-dev \
             libgl1-mesa-dev \
             libglu1-mesa-dev \
-            mesa-common-dev
+            mesa-common-dev \
+            unixodbc unixodbc-dev \
+            libmariadb-dev-compat libmariadb-dev
+
 
       - name: Install MySQL client library (for Qt MySQL plugin)
         run: |
