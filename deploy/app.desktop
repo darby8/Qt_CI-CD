@@ -1,6 +1,7 @@
 [Desktop Entry]
-Type=Application
-Name=MyApp
+Name=apptest_qt
 Exec=apptest_qt
 Icon=app
+Type=Application
 Categories=Utility;
+
