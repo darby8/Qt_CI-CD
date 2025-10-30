@@ -86,6 +86,7 @@ jobs:
 
 
 
+
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
