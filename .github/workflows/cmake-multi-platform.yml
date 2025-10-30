@@ -102,32 +102,45 @@ jobs:
 
 
 
-      - name: Build AppImage
+
+      - name: Download AppImage tools
         run: |
-          APPNAME=$(basename "$EXE")
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-qt/master/linuxdeploy-plugin-qt-x86_64.AppImage
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x linuxdeploy-*.AppImage
+          chmod +x appimagetool-*.AppImage
+
+
+
+
+
+
+
+      - name: Build AppImage
+        env:
+          EXE: build/apptest_qt
+        run: |
           QT_DIR="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64"
 
           export QML_IMPORT_PATH="$QT_DIR/qml"
           export QT_PLUGIN_PATH="$QT_DIR/plugins"
 
-          chmod +x linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-
-          # 1) Deploy binary, icon, desktop
+          # 1) Create AppDir and deploy the binary
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
             -e "$EXE" \
-            -d AppDir/usr/share/applications/app.desktop \
-            -i AppDir/usr/share/icons/hicolor/256x256/apps/app.png
+            -d deploy/app.desktop \
+            -i deploy/app.png
 
-          # 2) Deploy Qt QML + plugins automatically ✅ (fixed)
+          # 2) Deploy Qt (QML + plugins)
           ./linuxdeploy-plugin-qt-x86_64.AppImage \
             --appdir AppDir \
             --qt-path "$QT_DIR"
 
           # 3) Create final AppImage
           ./appimagetool-x86_64.AppImage AppDir
+
 
 
 
