@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Qt 6.5.3
+      - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: "6.5.3"
@@ -22,24 +22,22 @@ jobs:
           arch: gcc_64
           modules: qtquick
 
-      - name: Install Linux dependencies
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse2 patchelf libxcb-cursor0
+          sudo apt-get install -y libfuse2 libxcb-cursor0 patchelf
 
-      - name: Configure and Build
+      - name: Configure & Build
         run: |
-          mkdir -p build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . --parallel
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
 
-      - name: Detect executable
-        id: detect
+      - name: Find Executable
+        id: exe
         run: |
           EXE=$(find build -maxdepth 2 -type f -executable | head -n 1)
           echo "EXE=$EXE" >> $GITHUB_ENV
-          echo "Executable found: $EXE"
+          echo "Executable: $EXE"
 
       - name: Download AppImage Tools
         run: |
@@ -55,6 +53,7 @@ jobs:
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
           cp "$EXE" AppDir/usr/bin/apptest_qt
+
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
           cat <<EOF > AppDir/usr/share/applications/apptest_qt.desktop
@@ -66,7 +65,7 @@ Type=Application
 Categories=Utility;
 EOF
 
-      - name: Deploy Qt + QML and Build AppImage
+      - name: Deploy Qt & QML + Build AppImage
         run: |
           QT_DIR="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64"
           QML_PATH="build/Desktop_Qt_6_5_3_GCC_64bit-Release/test_qt"
@@ -80,7 +79,7 @@ EOF
 
           ./appimagetool-x86_64.AppImage AppDir
 
-      - name: Upload AppImage
+      - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: apptest_qt-AppImage
