@@ -85,19 +85,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libxcb-cursor0 \
-            libxcb-xinerama0 \
-            libxcb-util1 \
-            libx11-xcb1 \
             libxcb-icccm4 \
             libxcb-image0 \
             libxcb-keysyms1 \
             libxcb-render-util0 \
             libxcb-xfixes0 \
-            libxrender1 \
+            libxcb-cursor0 \
+            libxcb-xinerama0 \
+            libxcb-util1 \
+            libx11-xcb1 \
+            libxcb-shape0 \
             libxi6 \
+            libxrender1 \
             libxtst6 \
             libxrandr2
+
 
 
       - name: Build AppImage
