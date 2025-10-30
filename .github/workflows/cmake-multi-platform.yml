@@ -81,14 +81,24 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
 
-      - name: Install missing XCB dependencies
+      - name: Install missing Qt/XCB dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libxcb-cursor0 \
             libxcb-xinerama0 \
             libxcb-util1 \
-            libx11-xcb1
+            libx11-xcb1 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-render-util0 \
+            libxcb-xfixes0 \
+            libxrender1 \
+            libxi6 \
+            libxtst6 \
+            libxrandr2
+
 
       - name: Build AppImage
         env:
