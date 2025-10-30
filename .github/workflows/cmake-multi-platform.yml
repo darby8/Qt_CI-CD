@@ -46,7 +46,7 @@ jobs:
             
       - name: Install required X11/XCB libraries
         run: |
-          sudo apt-get install -y \
+          apt-get install -y \
             libxrender1 \
             libxrandr2 \
             libegl1 \
