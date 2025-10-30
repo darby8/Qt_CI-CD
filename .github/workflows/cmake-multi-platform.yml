@@ -42,6 +42,24 @@ jobs:
             libdbus-1-dev \
             libfontconfig1-dev \
             libxcb-cursor0 libxcb-xinerama0 libxcb-util1 libx11-xcb1
+            
+            
+      - name: Install missing XCB / X11 libraries (fix libqxcb.so deps)
+        run: |
+          apt-get install -y \
+            libxrender1 \
+            libxrandr2 \
+            libxcb-render-util0 \
+            libxcb-render0 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-icccm4 \
+            libxcb-shape0 \
+            libxcb-xfixes0 \
+            libxcb-sync1 \
+            libxcb-randr0 \
+            libxcb-util1
+
 
       - name: Install PostgreSQL runtime (fixes libpq.so.5 not found)
         run: |
@@ -101,9 +119,12 @@ jobs:
           wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
           chmod +x linuxdeployqt
 
+
+      - name: Install fuse2 (optional speed boost)
+        run: |
+          apt-get install -y fuse
+
       - name: Build AppImage (includes PostgreSQL driver)
-        env:
-          APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
           export PATH="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin:$PATH"
           ./linuxdeployqt AppDir/usr/share/applications/MyQtApp.desktop \
