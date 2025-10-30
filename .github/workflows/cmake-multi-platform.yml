@@ -14,7 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # --- SYSTEM SETUP ---
+      - name: Prepare Environment
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y tzdata
+          ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+          dpkg-reconfigure --frontend noninteractive tzdata
+
       - name: Install system dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive
@@ -22,45 +29,34 @@ jobs:
           apt-get install -y \
             build-essential \
             cmake \
-            wget \
-            patchelf \
-            python3 python3-pip \
-            libdbus-1-dev \
-            libfontconfig1-dev \
+            mesa-common-dev \
+            libglu1-mesa-dev \
             libxkbcommon-dev \
             libxkbcommon-x11-dev \
             libegl1-mesa-dev \
             libgl1-mesa-dev \
-            libglu1-mesa-dev \
-            mesa-common-dev
+            libglib2.0-0 \
+            libglib2.0-dev \
+            libdbus-1-dev \
+            libfontconfig1-dev \
+            libmysqlclient-dev \
+            patchelf \
+            wget \
+            curl
 
-      # --- FIX libqxcb MISSING LIBRARIES ---
-      - name: Install Qt XCB GUI dependencies
+      - name: Install Python & pip
         run: |
-          apt-get install -y \
-            libx11-xcb1 \
-            libxcb1 \
-            libxcb-cursor0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-randr0 \
-            libxcb-render-util0 \
-            libxcb-shape0 \
-            libxcb-sync1 \
-            libxcb-util1 \
-            libxcb-xfixes0 \
-            libxcb-xinerama0 \
-            libxcb-xkb1
+          apt-get install -y python3 python3-pip
 
-      # --- INSTALL QT ---
       - name: Install aqt
-        run: pip3 install aqtinstall
+        run: |
+          pip3 install --upgrade pip
+          pip3 install aqtinstall
 
-      - name: Install Qt 6.5.3
-        run: aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
+      - name: Install Qt 6.5.3 for Linux
+        run: |
+          aqt install-qt linux desktop 6.5.3 gcc_64 --outputdir Qt
 
-      # --- BUILD PROJECT ---
       - name: Configure CMake
         run: |
           cmake -S . -B build \
@@ -70,50 +66,45 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Detect Built Executable
+      - name: Detect built executable
         id: findexe
         run: |
           EXE=$(find build -maxdepth 3 -type f -executable | head -n 1)
           echo "EXE=$EXE" >> $GITHUB_ENV
-          echo "Executable detected: $EXE"
+          echo "Found executable: $EXE"
 
-      # --- PACKAGE STRUCTURE ---
-      - name: Create AppDir structure
+      - name: Setup AppDir structure
         run: |
-          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
-          cp "$EXE" AppDir/usr/bin/MyQtApp
-          chmod +x AppDir/usr/bin/MyQtApp
-
-          # Icon (replace deploy/app.png with your actual icon)
+          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps AppDir/usr/share/applications
+          cp "$EXE" AppDir/usr/bin/
+          chmod +x AppDir/usr/bin/*
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/MyQtApp.png
-
-          # Desktop file
           cat <<EOF > AppDir/usr/share/applications/MyQtApp.desktop
-          [Desktop Entry]
-          Name=My Qt App
-          Exec=MyQtApp
-          Icon=MyQtApp
-          Type=Application
-          Categories=Utility;
-          EOF
+[Desktop Entry]
+Name=My Qt App
+Exec=$(basename "$EXE")
+Icon=MyQtApp
+Type=Application
+Categories=Utility;
+EOF
 
-      # --- DOWNLOAD linuxdeployqt ---
-      - name: Download linuxdeployqt
+      - name: Download linuxdeploy + plugin + linuxdeployqt
         run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
-          chmod +x linuxdeployqt
+          chmod +x linuxdeploy*.AppImage
 
-      # --- BUILD APPIMAGE ---
-      - name: Build AppImage
+      - name: Build AppImage (No FUSE mode)
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
           export PATH="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin:$PATH"
           ./linuxdeployqt AppDir/usr/share/applications/MyQtApp.desktop \
             -bundle-non-qt-libs \
+            -ignore-plugin=libqsqlmysql.so \
             -appimage
 
-      # --- SAVE ARTIFACT ---
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
