@@ -103,20 +103,33 @@ jobs:
 
 
       - name: Build AppImage
-        env:
-          QMAKE: ${{ github.workspace }}/Qt/6.5.3/gcc_64/bin/qmake
-        run: |
-          # First pass: create AppDir structure and deploy main binary + libs
-          ./linuxdeploy-x86_64.AppImage \
-            --appdir AppDir \
-            --plugin qt
+	run: |
+	    APPNAME="apptest_qt"
+	    QT_DIR="$HOME/Qt/6.5.3/gcc_64"
 
-          # Second pass: deploy QML and QML plugins explicitly
-          ./linuxdeploy-plugin-qt-x86_64.AppImage \
-            --appdir AppDir \
-            --extra-module=Qml \
-            --qml-import-path=build/Desktop_Qt_6_5_3_GCC_64bit-Release/test_qt \
-            --output appimage
+	    export QML_IMPORT_PATH="$QT_DIR/qml"
+	    export QT_PLUGIN_PATH="$QT_DIR/plugins"
+
+	    chmod +x linuxdeploy-x86_64.AppImage
+	    chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
+
+	    # Create AppDir + deploy binary, desktop and icon
+	    ./linuxdeploy-x86_64.AppImage \
+	      --appdir AppDir \
+	      -e build/Desktop_Qt_6_5_3_GCC_64bit-Release/${APPNAME} \
+	      -d deploy/app.desktop \
+	      -i deploy/app.png
+
+	    # Run Qt plugin to deploy QML + plugins
+	    ./linuxdeploy-plugin-qt-x86_64.AppImage \
+	      --appdir AppDir \
+	      --extra-module=QtQuick \
+	      --extra-module=QtQml \
+	      --extra-module=QtQuickControls2 \
+	      --extra-module=QtQuickLayouts
+
+	    # Create AppImage
+	    ./appimagetool-x86_64.AppImage AppDir
 
 
 
