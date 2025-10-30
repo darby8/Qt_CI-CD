@@ -22,22 +22,26 @@ jobs:
           arch: gcc_64
           modules: qtquick
 
-      - name: Install required system libs
+      - name: Install Linux dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse2 patchelf libxcb-cursor0
 
-      - name: Configure and build (Release)
+      - name: Configure and Build
         run: |
           mkdir -p build
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . --config Release
+          cmake --build . --parallel
 
-      - name: Set EXE path
-        run: echo "EXE=build/apptest_qt" >> $GITHUB_ENV
+      - name: Detect executable
+        id: detect
+        run: |
+          EXE=$(find build -maxdepth 2 -type f -executable | head -n 1)
+          echo "EXE=$EXE" >> $GITHUB_ENV
+          echo "Executable found: $EXE"
 
-      - name: Download deployment tools
+      - name: Download AppImage Tools
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
@@ -50,11 +54,10 @@ jobs:
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
-          cp "$EXE" AppDir/usr/bin/
-
+          cp "$EXE" AppDir/usr/bin/apptest_qt
           cp deploy/app.png AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
-          cat <<EOF > AppDir/usr/share/applications/app.desktop
+          cat <<EOF > AppDir/usr/share/applications/apptest_qt.desktop
 [Desktop Entry]
 Name=apptest_qt
 Exec=apptest_qt
@@ -63,7 +66,7 @@ Type=Application
 Categories=Utility;
 EOF
 
-      - name: Build AppImage
+      - name: Deploy Qt + QML and Build AppImage
         run: |
           QT_DIR="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64"
           QML_PATH="build/Desktop_Qt_6_5_3_GCC_64bit-Release/test_qt"
@@ -81,5 +84,5 @@ EOF
         uses: actions/upload-artifact@v3
         with:
           name: apptest_qt-AppImage
-          path: ./*.AppImage
+          path: "*.AppImage"
 
