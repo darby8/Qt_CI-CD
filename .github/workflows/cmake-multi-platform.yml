@@ -102,18 +102,27 @@ jobs:
 
 
 
-
       - name: Download AppImage tools
         run: |
-          curl -L -o linuxdeploy-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          curl -L -o linuxdeploy-plugin-qt-x86_64.AppImage https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-qt/master/linuxdeploy-plugin-qt-x86_64.AppImage
-          curl -L -o appimagetool-x86_64.AppImage https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          curl -L -o linuxdeploy-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
 
-          chmod +x linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
+          curl -L -o linuxdeploy-plugin-qt-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+
+          curl -L -o appimagetool-x86_64.AppImage \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+
+          chmod +x linuxdeploy-*.AppImage appimagetool-*.AppImage
 
 
+      - name: Install additional Qt runtime deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
+            libxcb-xfixes0 libxcb-cursor0 libxcb-xinerama0 libxcb-util1 \
+            libx11-xcb1 libxcb-shape0 libxi6 libxrender1 libxtst6 libxrandr2
 
 
 
@@ -121,28 +130,25 @@ jobs:
 
 
       - name: Build AppImage
-        env:
-          EXE: build/apptest_qt
         run: |
+          EXE="$EXE"  # picked from previous detect step
           QT_DIR="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64"
 
           export QML_IMPORT_PATH="$QT_DIR/qml"
           export QT_PLUGIN_PATH="$QT_DIR/plugins"
 
-          # 1) Create AppDir and deploy the binary
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
             -e "$EXE" \
-            -d deploy/app.desktop \
-            -i deploy/app.png
+            -d AppDir/usr/share/applications/app.desktop \
+            -i AppDir/usr/share/icons/hicolor/256x256/apps/app.png
 
-          # 2) Deploy Qt (QML + plugins)
           ./linuxdeploy-plugin-qt-x86_64.AppImage \
             --appdir AppDir \
             --qt-path "$QT_DIR"
 
-          # 3) Create final AppImage
           ./appimagetool-x86_64.AppImage AppDir
+
 
 
 
