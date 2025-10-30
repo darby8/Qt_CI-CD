@@ -34,6 +34,14 @@ jobs:
             libglu1-mesa-dev \
             mesa-common-dev
 
+      - name: Install MySQL client library (for Qt MySQL plugin)
+        run: |
+          apt-get update
+          apt-get install -y libmysqlclient-dev
+
+
+
+
       # --- FIX libqxcb MISSING LIBRARIES ---
       - name: Install Qt XCB GUI dependencies
         run: |
