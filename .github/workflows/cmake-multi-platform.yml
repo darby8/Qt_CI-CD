@@ -15,19 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            cmake \
-            mesa-common-dev \
-            libglu1-mesa-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev \
-            libegl1-mesa-dev \
-            libgl1-mesa-dev \
-            patchelf
+   
 
       - name: Remove old Qt (if any)
         run: rm -rf Qt
