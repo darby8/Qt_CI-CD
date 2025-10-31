@@ -1,4 +1,12 @@
-macos-build:
+name: macOS Qt Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  macos-build:
   runs-on: macos-latest
 
   steps:
