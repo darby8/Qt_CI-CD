@@ -58,6 +58,7 @@ jobs:
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyQtApp-macOS
-          path: MyQtApp-macOS.zip
+          name: apptest_qt-macOS
+          path: apptest_qt-macOS.zip
+
 
