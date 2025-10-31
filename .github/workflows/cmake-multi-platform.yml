@@ -52,3 +52,9 @@ jobs:
           echo "DMG_FILE=$DMG_FILE" >> $GITHUB_ENV
 
 
+      - name: Upload macOS DMG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyQtApp-macOS
+          path: ${{ env.DMG_FILE }}
+
