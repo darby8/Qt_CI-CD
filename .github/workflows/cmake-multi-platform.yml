@@ -14,7 +14,7 @@ jobs:
       - name: Install Qt 6.8.3 arm64
         run: |
           pip install aqtinstall
-          aqt install-qt mac desktop 6.8.3 clang_arm64 --outputdir $HOME/Qt
+          aqt install-qt mac desktop 6.8.3 clang_64 --outputdir $HOME/Qt
 
       - name: Configure CMake
         run: |
