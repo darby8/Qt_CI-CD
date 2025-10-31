@@ -1,46 +1,55 @@
-name: Build Qt for macOS arm64
+name: macOS Qt (ARM64) Build
 
 on:
   push:
-    branches: [ "main" ]   # ✅ Run automatically when pushing to main
-  workflow_dispatch:       # ✅ Still allow manual run from GitHub UI
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build-macos-arm64:
+  mac-build:
     runs-on: macos-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install Qt 6.8.3 arm64
+      - name: Install Python & aqt
         run: |
-          pip install aqtinstall
-          aqt install-qt mac desktop 6.8.3 clang_64 --outputdir $HOME/Qt
+          brew install python3
+          python3 -m pip install --upgrade pip
+          python3 -m pip install aqtinstall
 
-      - name: Configure CMake
+      - name: Install Qt 6.8.3 (macOS arm64)
+        run: |
+          aqt install-qt mac desktop 6.8.3 clang_64 --outputdir Qt \
+            --arch arm64
+
+      - name: Verify Architecture
+        run: uname -m
+
+      - name: Configure CMake (Release ARM64)
         run: |
           cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.8.3/macos/lib/cmake" \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.8.3/macos/lib/cmake
 
       - name: Build
-        run: |
-          cmake --build build --config Release
+        run: cmake --build build --parallel
 
-      - name: Fix Qt Dependencies (macdeployqt)
+      - name: Deploy Qt into .app
         run: |
-          "$HOME/Qt/6.8.3/macos/bin/macdeployqt" build/*.app
+          APP=$(find build -name "*.app" -type d | head -n 1)
+          echo "Found app: $APP"
+          $GITHUB_WORKSPACE/Qt/6.8.3/macos/bin/macdeployqt "$APP" -qmldir=.
+          echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
 
-      - name: Compress Only the .app (no nested zips)
+      - name: Remove Quarantine Flags
         run: |
-          cd build
-          zip -r MyApp.zip *.app
-          cd ..
+          xattr -cr "$APP_BUNDLE"
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload .app Bundle
+        uses: actions/upload-artifact@v4
         with:
-          name: MyApp-macos-arm64
-          path: build/MyApp.zip
+          name: MyQtApp-macos-arm64
+          path: ${{ env.APP_BUNDLE }}
 
