@@ -1,4 +1,4 @@
-name: macOS Qt Build
+name: macOS Qt Build (Apple Silicon)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   mac-build:
-    runs-on: macos-latest
+    runs-on: macos-14   # IMPORTANT → Apple Silicon runner
 
     steps:
       - uses: actions/checkout@v3
@@ -21,14 +21,15 @@ jobs:
           pip install aqtinstall
           echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Qt 6.5.3 (clang_64)
+      - name: Install Qt 6.5.3 (Apple Silicon: clang_arm64)
         run: |
-          aqt install-qt mac desktop 6.5.3 clang_64 --outputdir Qt
+          aqt install-qt mac desktop 6.5.3 clang_arm64 --outputdir Qt
 
-      - name: Configure CMake
+      - name: Configure CMake (Apple Silicon)
         run: |
           cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/macos \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/macos-arm64 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
@@ -38,21 +39,21 @@ jobs:
         run: |
           APP=$(find build -name "*.app" -type d | head -n 1)
           echo "Found app bundle: $APP"
-          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
+          "$GITHUB_WORKSPACE/Qt/6.5.3/macos-arm64/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
           echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
 
-      - name: Remove Quarantine (IMPORTANT)
+      - name: Remove Quarantine
         run: |
           xattr -cr "$APP_BUNDLE"
 
-      - name: Ad-hoc Code Sign (No Apple ID needed)
+      - name: Ad-hoc Code Sign (required to avoid “damaged” error)
         run: |
           codesign --deep --force --sign "-" "$APP_BUNDLE"
 
       - name: Create Drag-and-Drop DMG Installer
         run: |
           APP_NAME=$(basename "$APP_BUNDLE")
-          DMG_NAME="${APP_NAME%.app}.dmg"
+          DMG_NAME="${APP_NAME%.app}-arm64.dmg"
           create-dmg \
             --volname "$APP_NAME Installer" \
             --window-size 550 350 \
@@ -65,6 +66,6 @@ jobs:
       - name: Upload macOS DMG Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyQtApp-macOS
+          name: MyQtApp-macOS-arm64
           path: ${{ env.DMG_FILE }}
 
