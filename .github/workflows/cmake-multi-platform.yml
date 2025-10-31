@@ -1,7 +1,9 @@
 name: Build Qt for macOS arm64
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ "main" ]   # ✅ Run automatically when pushing to main
+  workflow_dispatch:       # ✅ Still allow manual run from GitHub UI
 
 jobs:
   build-macos-arm64:
@@ -30,7 +32,7 @@ jobs:
         run: |
           "$HOME/Qt/6.8.3/macos/bin/macdeployqt" build/*.app
 
-      - name: Compress Only The .app (NO nested zip)
+      - name: Compress Only the .app (no nested zips)
         run: |
           cd build
           zip -r MyApp.zip *.app
