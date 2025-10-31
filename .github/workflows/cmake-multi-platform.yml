@@ -21,9 +21,9 @@ jobs:
           pip install aqtinstall
           echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Qt 6.8.3 (ARM64 - clang_arm64)
+      - name: Install Qt 6.8.3 (ARM64 - clang_64)
         run: |
-          aqt install-qt mac desktop 6.8.3 clang_arm64 --outputdir Qt
+          aqt install-qt mac desktop 6.8.3 clang_64 --outputdir Qt
 
       - name: Configure CMake
         run: |
