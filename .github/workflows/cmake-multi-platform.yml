@@ -125,18 +125,23 @@ jobs:
           wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
           chmod +x linuxdeployqt
 
+      - name: Install MySQL Libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmysqlclient-dev
 
 
-      - name: Build AppImage (includes PostgreSQL driver)
+      - name: Build AppImage (MySQL Driver)
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
           export PATH="$GITHUB_WORKSPACE/Qt/6.5.3/gcc_64/bin:$PATH"
-          ./linuxdeployqt AppDir/usr/share/applications/MyQtApp.desktop \
+          ./linuxdeployqt.AppImage AppDir/usr/share/applications/MyQtApp.desktop \
             -bundle-non-qt-libs \
             -extra-plugins=imageformats/libqsvg.so \
-            -extra-plugins=sqldrivers/libqsqlpsql.so \
+            -extra-plugins=sqldrivers/libqsqlmysql.so \
             -appimage
+
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
