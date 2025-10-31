@@ -1,4 +1,4 @@
-name: macOS Qt (ARM64) Build
+name: macOS ARM64 Qt Build
 
 on:
   push:
@@ -10,10 +10,9 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Install Python & create venv
+      - name: Install Python + aqtinstall
         run: |
           brew install python3
           python3 -m venv venv
@@ -22,33 +21,41 @@ jobs:
           pip install aqtinstall
           echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Qt 6.8.3 (ARM64)
+      - name: Install Qt 6.8.3 (Apple Silicon ARM64)
         run: |
-          aqt install-qt mac desktop 6.8.3 clang_arm64 --outputdir Qt 
+          aqt install-qt mac qt 6.8.3 mac_arm64 --outputdir Qt
 
       - name: Configure CMake
         run: |
           cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.8.3/macos/lib/cmake
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.8.3/macos \
+            -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build App
         run: cmake --build build --parallel
 
-      - name: Deploy Qt into .app
+      - name: Deploy Qt into .app Bundle
         run: |
           APP=$(find build -name "*.app" -type d | head -n 1)
           echo "Found app: $APP"
-          $GITHUB_WORKSPACE/Qt/6.8.3/macos/bin/macdeployqt "$APP" -qmldir=.
+          "$GITHUB_WORKSPACE/Qt/6.8.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
           echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
 
-      - name: Remove Quarantine Flags
+      - name: Remove Quarantine (fix “damaged app” issue)
         run: |
           xattr -cr "$APP_BUNDLE"
 
-      - name: Upload .app Bundle
+      - name: Zip App Bundle
+        run: |
+          APP_NAME=$(basename "$APP_BUNDLE")
+          ZIP_NAME="${APP_NAME%.app}-macOS-arm64.zip"
+          cd "$(dirname "$APP_BUNDLE")"
+          zip -r "$ZIP_NAME" "$APP_NAME"
+          echo "ZIP_FILE=$(dirname "$APP_BUNDLE")/$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyQtApp-macos-arm64
-          path: ${{ env.APP_BUNDLE }}
+          name: MyQtApp-macOS-arm64
+          path: ${{ env.ZIP_FILE }}
 
