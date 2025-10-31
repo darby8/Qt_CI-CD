@@ -136,7 +136,8 @@ jobs:
 
 
 
-      - name: Build AppImage (MySQL Driver)
+
+      - name: Build AppImage
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
         run: |
@@ -146,6 +147,7 @@ jobs:
             -bundle-non-qt-libs \
             -extra-plugins=imageformats/libqsvg.so \
             -extra-plugins=sqldrivers/libqsqlmysql.so \
+            -exclude-plugins=sqldrivers/libqsqlodbc.so \
             -appimage
 
 
