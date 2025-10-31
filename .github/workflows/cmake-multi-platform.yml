@@ -12,11 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Python & aqt
+      - name: Install Python & aqt (in virtual environment)
         run: |
           brew install python3
-          pip3 install --upgrade pip
-          pip3 install aqtinstall
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install aqtinstall
+          echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
+
 
       - name: Install Qt 6.5.3 (clang_64)
         run: |
