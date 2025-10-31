@@ -42,16 +42,18 @@ jobs:
           echo "EXE=$EXE" >> $GITHUB_ENV
           echo "Executable: $EXE"
 
-      - name: Deploy Qt Frameworks into .app
-        run: |
-          APP=$(find build -name "*.app" -maxdepth 3 | head -n 1)
-          echo "Found app bundle: $APP"
-          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
+     - name: Deploy Qt into app bundle
+       run: |
+         APP=$(find build -name "*.app" -type d | head -n 1)
+         echo "Found app bundle: $APP"
+         "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
+         echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
+
+     - name: Zip macOS App Bundle
+       run: |
+         zip -r apptest_qt-macOS.zip "$APP_BUNDLE"
 
 
-      - name: Zip .app for release
-        run: |
-          zip -r MyQtApp-macOS.zip MyQtApp.app
 
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
