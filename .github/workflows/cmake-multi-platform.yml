@@ -42,14 +42,12 @@ jobs:
           echo "EXE=$EXE" >> $GITHUB_ENV
           echo "Executable: $EXE"
 
-      - name: Create .app bundle using macdeployqt
+      - name: Deploy Qt Frameworks into .app
         run: |
-          APP_NAME="MyQtApp"
-          APP_BUNDLE="${APP_NAME}.app"
-          # Let Qt create the bundle from the binary
-          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$EXE" \
-            -qmldir=. \
-            -verbose=2
+          APP=$(find build -name "*.app" -maxdepth 3 | head -n 1)
+          echo "Found app bundle: $APP"
+          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
+
 
       - name: Zip .app for release
         run: |
