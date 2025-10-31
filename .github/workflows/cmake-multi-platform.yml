@@ -134,7 +134,10 @@ jobs:
       - name: Make linuxdeployqt executable
         run: chmod +x linuxdeployqt
 
-
+      - name: Install unixODBC runtime
+        run: |
+          apt-get update
+          apt-get install -y unixodbc unixodbc-dev odbcinst odbcinst1debian2
 
 
       - name: Build AppImage
@@ -147,7 +150,6 @@ jobs:
             -bundle-non-qt-libs \
             -extra-plugins=imageformats/libqsvg.so \
             -extra-plugins=sqldrivers/libqsqlmysql.so \
-            -exclude-plugins=sqldrivers/libqsqlodbc.so \
             -appimage
 
 
