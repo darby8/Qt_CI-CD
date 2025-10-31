@@ -35,23 +35,20 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Deploy Qt into app bundle
-        id: deploy
         run: |
           APP=$(find build -name "*.app" -type d | head -n 1)
-          echo "Found: $APP"
+          echo "Found app bundle: $APP"
           "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
           echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
+
+      - name: Ad-hoc Code Sign
+        run: |
+          codesign --deep --force --sign "-" "$APP_BUNDLE"
 
       - name: Create DMG Installer
         run: |
           "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP_BUNDLE" -dmg
           DMG_FILE=$(dirname "$APP_BUNDLE")/*.dmg
           echo "DMG_FILE=$DMG_FILE" >> $GITHUB_ENV
-          echo "Created DMG: $DMG_FILE"
 
-      - name: Upload macOS DMG Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: MyQtApp-macOS
-          path: ${{ env.DMG_FILE }}
 
