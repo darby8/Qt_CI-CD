@@ -18,32 +18,32 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Qt Installer (aqt) + Ninja + CMake
+      - name: Install Qt Installer, Ninja, CMake
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install aqtinstall
           brew install ninja cmake
 
-      - name: Install Qt 6.6.3 (macOS ARM64)
+      - name: Install Qt 6.6.3 (Apple Silicon)
         run: |
-          aqt install-qt mac desktop 6.6.3 macos --outputdir $HOME/Qt
+          aqt install-qt mac desktop 6.6.3 mac_arm64 --outputdir $HOME/Qt
 
       - name: Configure CMake
         run: |
           cmake -S . -B build -G Ninja \
-            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.6.3/macos" \
+            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.6.3/mac_arm64" \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Project
         run: cmake --build build --parallel
 
-      - name: Bundle Qt Frameworks (macdeployqt)
+      - name: Bundle Qt Frameworks
         run: |
           APP_PATH=$(find build -name "*.app" -type d | head -n 1)
           echo "Found app: $APP_PATH"
-          "$HOME/Qt/6.6.3/macos/bin/macdeployqt" "$APP_PATH" -verbose=1
+          "$HOME/Qt/6.6.3/mac_arm64/bin/macdeployqt" "$APP_PATH" -verbose=1
 
-      - name: Upload macOS .app Artifact
+      - name: Upload .app Artifact
         uses: actions/upload-artifact@v4
         with:
           name: macOS-App
