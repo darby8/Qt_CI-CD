@@ -2,7 +2,7 @@ name: Build Qt App (macOS ARM64)
 
 on:
   push:
-  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install aqtinstall + ninja + cmake
+      - name: Install Qt Installer (aqt) + Ninja + CMake
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install aqtinstall
@@ -34,18 +34,18 @@ jobs:
             -DCMAKE_PREFIX_PATH="$HOME/Qt/6.6.3/macos" \
             -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build Project
         run: cmake --build build --parallel
 
-      - name: Run macdeployqt to bundle frameworks
+      - name: Bundle Qt Frameworks (macdeployqt)
         run: |
           APP_PATH=$(find build -name "*.app" -type d | head -n 1)
-          echo "Found app at: $APP_PATH"
+          echo "Found app: $APP_PATH"
           "$HOME/Qt/6.6.3/macos/bin/macdeployqt" "$APP_PATH" -verbose=1
 
-      - name: Upload macOS App Bundle
+      - name: Upload macOS .app Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MacOS-App
+          name: macOS-App
           path: build/*.app
 
