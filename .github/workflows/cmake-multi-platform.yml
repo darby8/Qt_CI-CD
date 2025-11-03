@@ -12,7 +12,6 @@ jobs:
     env:
       BUILD_DIR: build
       QT_VERSION: 6.8.3
-      QT_MODULES: qtmultimedia  # add more if needed (qtquickcontrols2, etc.)
 
     steps:
       - name: Checkout
@@ -25,41 +24,23 @@ jobs:
           host: mac
           target: desktop
           arch: macos_arm64
-          modules: qtdeclarative qtshadertools qtmultimedia qtquickcontrols2
           cache: true
-
+          install-deps: true
 
       - name: Configure CMake
-        run: |
-          cmake -S . -B ${{ env.BUILD_DIR }} \
-            -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: |
-          cmake --build ${{ env.BUILD_DIR }} --config Release --parallel 4
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel 4
 
-      # ✅ Bundle Qt dependencies into .app
-      - name: Run macdeployqt
+      - name: Deploy app with macdeployqt
         run: |
-          APP_PATH=$(find ${{ env.BUILD_DIR }} -name "*.app" -type d | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            echo "❌ .app not found!"
-            exit 1
-          fi
-          echo "✅ Found app: $APP_PATH"
-          macdeployqt "$APP_PATH" -qmldir=./ -verbose=1
+          APP=$(find ${{ env.BUILD_DIR }} -name "*.app" -type d | head -n 1)
+          echo "Found: $APP"
+          macdeployqt "$APP" -qmldir=. -verbose=1
 
-      # ✅ Create DMG installer
-      - name: Create DMG
-        run: |
-          APP_PATH=$(find ${{ env.BUILD_DIR }} -name "*.app" -type d | head -n 1)
-          dmgbuild --version || pip3 install dmgbuild
-          dmgbuild -s /dev/null -D app="$APP_PATH" "QtApp" QtApp.dmg
-
-      # ✅ Upload DMG artifact
-      - name: Upload macOS Build (DMG)
+      - name: Upload .app
         uses: actions/upload-artifact@v4
         with:
-          name: macOS-Installer
-          path: QtApp.dmg
-
+          name: macOS-App
+          path: ${{ env.BUILD_DIR }}/*.app
