@@ -47,9 +47,6 @@ jobs:
 
 
 
-      - name: Ad-hoc Code Sign (No Apple ID needed)
-        run: |
-          codesign --deep --force --sign "-" "$APP_BUNDLE"
 
       - name: Create Drag-and-Drop DMG Installer
         run: |
