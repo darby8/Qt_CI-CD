@@ -1,4 +1,4 @@
-name: Build Qt App (macOS ARM64)
+name: macOS Qt Build
 
 on:
   push:
@@ -6,40 +6,66 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos:
+  mac-build:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Install Python & Tools
+      - name: Install Python & aqt (venv)
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install aqtinstall
-          brew install ninja cmake
+          brew install python3 create-dmg
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install aqtinstall
+          echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Qt 6.5.3 (ARM64)
+      - name: Install Qt 6.5.3 (clang_64)
         run: |
-          aqt install-qt mac desktop 6.5.3 mac_arm64 --outputdir $HOME/Qt
+          aqt install-qt mac desktop 6.5.3 clang_64 --outputdir Qt
 
-      - name: Configure
+      - name: Configure CMake
         run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.5.3/mac_arm64" \
+          cmake -S . -B build \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/macos \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Deploy App
+      - name: Deploy Qt into app bundle
         run: |
-          APP_PATH=$(find build -name "*.app" -type d | head -n 1)
-          "$HOME/Qt/6.5.3/mac_arm64/bin/macdeployqt" "$APP_PATH" -verbose=1
+          APP=$(find build -name "*.app" -type d | head -n 1)
+          echo "Found app bundle: $APP"
+          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
+          echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
 
-      - name: Upload App
+      - name: Remove Quarantine (IMPORTANT)
+        run: |
+          xattr -cr "$APP_BUNDLE"
+
+      - name: Ad-hoc Code Sign (No Apple ID needed)
+        run: |
+          codesign --deep --force --sign "-" "$APP_BUNDLE"
+
+      - name: Create Drag-and-Drop DMG Installer
+        run: |
+          APP_NAME=$(basename "$APP_BUNDLE")
+          DMG_NAME="${APP_NAME%.app}.dmg"
+          create-dmg \
+            --volname "$APP_NAME Installer" \
+            --window-size 550 350 \
+            --icon "$APP_NAME" 150 150 \
+            --app-drop-link 400 150 \
+            "$DMG_NAME" \
+            "$(dirname "$APP_BUNDLE")"
+          echo "DMG_FILE=$DMG_NAME" >> $GITHUB_ENV
+
+      - name: Upload macOS DMG Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macOS-App
-          path: build/*.app
+          name: MyQtApp-macOS
+          path: ${{ env.DMG_FILE }}
+
 
