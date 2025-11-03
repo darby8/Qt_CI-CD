@@ -6,11 +6,11 @@ on:
 
 jobs:
   build-macos:
-    runs-on: macos-14   # This runner is Apple Silicon (arm64)
+    runs-on: macos-14   # Apple Silicon runner
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install Python & AQT
       run: |
@@ -42,13 +42,13 @@ jobs:
           -ov -format UDZO
 
     - name: Upload .app Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: apptest_qt-app
         path: build/apptest_qt.app
 
     - name: Upload .dmg Installer Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: apptest_qt-dmg
         path: build/apptest_qt.dmg
