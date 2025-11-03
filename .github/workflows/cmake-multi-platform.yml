@@ -26,7 +26,7 @@ jobs:
       - name: Install Qt 6.5.3 (macOS ARM64)
         run: |
           pip3 install aqtinstall
-          aqt install-qt mac desktop 6.5.3 mac_arm64 --outputdir $HOME/Qt
+          aqt install-qt mac desktop 6.5.3 macos --outputdir $HOME/Qt
 
 
       - name: Configure CMake
