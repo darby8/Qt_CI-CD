@@ -21,10 +21,11 @@ jobs:
           pip install aqtinstall
           echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Qt 6.7.2 (clang_64)
+      - name: Install Qt 6.7.2 (macOS arm64)
         run: |
-          aqt install-qt mac desktop 6.7.2 clang_64 --outputdir Qt \
+          aqt install-qt mac desktop 6.7.2 macos --outputdir Qt \
             --modules qtdeclarative qtquickcontrols2 qtmultimedia qtshadertools
+
 
 
       - name: Configure CMake
