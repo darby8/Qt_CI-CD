@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Qt 6.5.3 (Apple Silicon)
         run: |
-          python3 -m aqt install-qt mac desktop 6.5.3 macos_arm64 \
+          python3 -m aqt install-qt mac desktop 6.5.3 macos_64 \
             --outputdir $GITHUB_WORKSPACE/Qt \
             --modules qtmultimedia
 
