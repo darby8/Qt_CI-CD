@@ -1,4 +1,4 @@
-name: macOS ARM64 Qt 6.5 Build
+name: Build Qt App (macOS ARM)
 
 on:
   push:
@@ -6,65 +6,59 @@ on:
   workflow_dispatch:
 
 jobs:
-  mac-build:
-    runs-on: macos-14  # Apple Silicon runner
+  build:
+    runs-on: macos-latest
+
+    env:
+      BUILD_DIR: build
+      QT_VERSION: 6.8.3
+      QT_MODULES: qtmultimedia  # add more if needed (qtquickcontrols2, etc.)
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install Python + aqtinstall + create-dmg
-        run: |
-          brew install python3 create-dmg
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install aqtinstall
-          echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
-
-      - name: Install Qt 6.5.3 (ARM64)
-        run: |
-          aqt install-qt mac qt 6.5.3 mac_arm64 --outputdir Qt
+      - name: Install Qt (macOS ARM64)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: mac
+          target: desktop
+          arch: macos_arm64
+          modules: ${{ env.QT_MODULES }}
+          cache: true
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/macos \
+          cmake -S . -B ${{ env.BUILD_DIR }} \
             -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build App
-        run: cmake --build build --parallel
-
-      - name: Deploy Qt into .app Bundle
+      - name: Build
         run: |
-          APP=$(find build -name "*.app" -type d | head -n 1)
-          echo "Found app: $APP"
-          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
-          echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
+          cmake --build ${{ env.BUILD_DIR }} --config Release --parallel 4
 
-      - name: Sign to avoid “App is Damaged” Error
+      # ✅ Bundle Qt dependencies into .app
+      - name: Run macdeployqt
         run: |
-          codesign --deep --force --sign "-" "$APP_BUNDLE"
+          APP_PATH=$(find ${{ env.BUILD_DIR }} -name "*.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ .app not found!"
+            exit 1
+          fi
+          echo "✅ Found app: $APP_PATH"
+          macdeployqt "$APP_PATH" -qmldir=./ -verbose=1
 
-      - name: Remove Quarantine Attributes (Gatekeeper bypass)
+      # ✅ Create DMG installer
+      - name: Create DMG
         run: |
-          xattr -cr "$APP_BUNDLE"
+          APP_PATH=$(find ${{ env.BUILD_DIR }} -name "*.app" -type d | head -n 1)
+          dmgbuild --version || pip3 install dmgbuild
+          dmgbuild -s /dev/null -D app="$APP_PATH" "QtApp" QtApp.dmg
 
-      - name: Create DMG Installer
-        run: |
-          APP_NAME=$(basename "$APP_BUNDLE")
-          DMG_NAME="${APP_NAME%.app}-Installer.dmg"
-          create-dmg \
-            --volname "$APP_NAME" \
-            --window-size 550 350 \
-            --icon "$APP_NAME" 140 150 \
-            --app-drop-link 400 150 \
-            "$DMG_NAME" \
-            "$(dirname "$APP_BUNDLE")"
-          echo "DMG_FILE=$DMG_NAME" >> $GITHUB_ENV
-
-      - name: Upload DMG Artifact
+      # ✅ Upload DMG artifact
+      - name: Upload macOS Build (DMG)
         uses: actions/upload-artifact@v4
         with:
-          name: MyQtApp-macOS-ARM64-Qt6.5
-          path: ${{ env.DMG_FILE }}
+          name: macOS-Installer
+          path: QtApp.dmg
 
