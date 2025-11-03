@@ -1,4 +1,4 @@
-name: macOS Qt Build
+name: macOS Qt Build (Drag & Drop DMG)
 
 on:
   push:
@@ -12,9 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Python & aqt (venv)
+      - name: Install Homebrew Dependencies
         run: |
           brew install python3 create-dmg
+
+      - name: Install Python & aqt (venv)
+        run: |
           python3 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
@@ -30,33 +33,44 @@ jobs:
           cmake -S . -B build \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/macos \
             -DCMAKE_BUILD_TYPE=Release
-            
+
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Deploy Qt into app bundle
+      - name: Deploy Qt into App Bundle
         run: |
           APP=$(find build -name "*.app" -type d | head -n 1)
-          echo "Found app bundle: $APP"
+          echo "Found App: $APP"
           "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
           echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
 
-      - name: Remove Quarantine (IMPORTANT)
+      - name: Remove Quarantine Flags
         run: xattr -cr "$APP_BUNDLE"
 
-      - name: Ad-hoc Code Sign (No Apple ID needed)
-        run: codesign --deep --force --sign "-" "$APP_BUNDLE"
+      - name: Free Ad-hoc Code Sign
+        run: |
+          echo "Signing $APP_BUNDLE"
+          codesign --deep --force --sign "-" "$APP_BUNDLE"
 
-      - name: Create DMG
+      - name: Create Drag-and-Drop DMG
         run: |
           APP_NAME=$(basename "$APP_BUNDLE")
           DMG_NAME="${APP_NAME%.app}.dmg"
-          create-dmg "$DMG_NAME" "$(dirname "$APP_BUNDLE")"
+          create-dmg \
+            --volname "$APP_NAME" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 110 \
+            --text-size 12 \
+            --icon "$APP_NAME" 150 150 \
+            --app-drop-link 450 150 \
+            "$DMG_NAME" \
+            "$(dirname "$APP_BUNDLE")"
           echo "DMG_FILE=$DMG_NAME" >> $GITHUB_ENV
 
-      - name: Upload macOS DMG Artifact
+      - name: Upload DMG Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyQtApp-macOS
+          name: MyQtApp-macOS-dmg
           path: ${{ env.DMG_FILE }}
 
