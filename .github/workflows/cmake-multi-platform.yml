@@ -25,8 +25,9 @@ jobs:
           host: mac
           target: desktop
           arch: macos_arm64
-          modules: ${{ env.QT_MODULES }}
+          modules: qtdeclarative qtshadertools qtmultimedia qtquickcontrols2
           cache: true
+
 
       - name: Configure CMake
         run: |
