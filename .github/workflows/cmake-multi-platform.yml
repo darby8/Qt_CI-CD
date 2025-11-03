@@ -46,9 +46,6 @@ jobs:
 
 
 
-      - name: Remove Quarantine (IMPORTANT)
-        run: |
-          xattr -cr "$APP_BUNDLE"
 
       - name: Ad-hoc Code Sign (No Apple ID needed)
         run: |
