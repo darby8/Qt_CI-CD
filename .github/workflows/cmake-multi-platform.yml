@@ -13,37 +13,31 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Qt Installer, Ninja, CMake
+      - name: Install Python & Tools
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install aqtinstall
           brew install ninja cmake
 
-      - name: Install Qt 6.6.3 (Apple Silicon)
+      - name: Install Qt 6.5.3 (ARM64)
         run: |
-          aqt install-qt mac desktop 6.6.3 mac_arm64 --outputdir $HOME/Qt
+          aqt install-qt mac desktop 6.5.3 mac_arm64 --outputdir $HOME/Qt
 
-      - name: Configure CMake
+      - name: Configure
         run: |
           cmake -S . -B build -G Ninja \
-            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.6.3/mac_arm64" \
+            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.5.3/mac_arm64" \
             -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build Project
+      - name: Build
         run: cmake --build build --parallel
 
-      - name: Bundle Qt Frameworks
+      - name: Deploy App
         run: |
           APP_PATH=$(find build -name "*.app" -type d | head -n 1)
-          echo "Found app: $APP_PATH"
-          "$HOME/Qt/6.6.3/mac_arm64/bin/macdeployqt" "$APP_PATH" -verbose=1
+          "$HOME/Qt/6.5.3/mac_arm64/bin/macdeployqt" "$APP_PATH" -verbose=1
 
-      - name: Upload .app Artifact
+      - name: Upload App
         uses: actions/upload-artifact@v4
         with:
           name: macOS-App
