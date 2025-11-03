@@ -38,7 +38,7 @@ jobs:
         run: |
           APP=$(find build -name "*.app" -type d | head -n 1)
           echo "Found app bundle: $APP"
-          "$GITHUB_WORKSPACE/Qt/6.5.3/clang_64/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
+          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
           echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
 
       - name: Remove Quarantine (IMPORTANT)
