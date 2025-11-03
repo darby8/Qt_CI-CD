@@ -28,9 +28,9 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/Qt/6.5.3/clang_64" \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/macos \
             -DCMAKE_BUILD_TYPE=Release
-
+            
       - name: Build
         run: cmake --build build --parallel
 
