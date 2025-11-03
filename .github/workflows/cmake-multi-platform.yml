@@ -1,44 +1,51 @@
-name: Build Qt App (macOS)
+name: Build Qt App (macOS ARM64)
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build-macos:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Source
         uses: actions/checkout@v4
 
       - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
-      - name: Install aqt + ninja
+      - name: Install aqtinstall + ninja + cmake
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install aqtinstall
-          brew install ninja
+          brew install ninja cmake
 
-      - name: Install Qt 6.5.3 (macOS Universal/ARM)
+      - name: Install Qt 6.6.3 (macOS ARM64)
         run: |
-          aqt install-qt mac desktop 6.5.3 macos --outputdir $HOME/Qt
+          aqt install-qt mac desktop 6.6.3 macos --outputdir $HOME/Qt
 
       - name: Configure CMake
         run: |
           cmake -S . -B build -G Ninja \
-            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.5.3/macos" \
+            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.6.3/macos" \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Upload Artifact
+      - name: Run macdeployqt to bundle frameworks
+        run: |
+          APP_PATH=$(find build -name "*.app" -type d | head -n 1)
+          echo "Found app at: $APP_PATH"
+          "$HOME/Qt/6.6.3/macos/bin/macdeployqt" "$APP_PATH" -verbose=1
+
+      - name: Upload macOS App Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: mac-build
-          path: build/
+          name: MacOS-App
+          path: build/*.app
 
