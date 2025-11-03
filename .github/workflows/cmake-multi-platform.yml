@@ -1,4 +1,4 @@
-name: macOS ARM64 Qt Build
+name: macOS ARM64 Qt 6.5 Build
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   mac-build:
-    runs-on: macos-14  # Apple Silicon Runner
+    runs-on: macos-14  # Apple Silicon runner
 
     steps:
       - uses: actions/checkout@v3
@@ -21,14 +21,14 @@ jobs:
           pip install aqtinstall
           echo "PATH=$PWD/venv/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Qt 6.7.3 (ARM64)
+      - name: Install Qt 6.5.3 (ARM64)
         run: |
-          aqt install-qt mac qt 6.7.3 mac_arm64 --outputdir Qt
+          aqt install-qt mac qt 6.5.3 mac_arm64 --outputdir Qt
 
       - name: Configure CMake
         run: |
           cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.7.3/macos \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.5.3/macos \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build App
@@ -38,18 +38,18 @@ jobs:
         run: |
           APP=$(find build -name "*.app" -type d | head -n 1)
           echo "Found app: $APP"
-          "$GITHUB_WORKSPACE/Qt/6.7.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
+          "$GITHUB_WORKSPACE/Qt/6.5.3/macos/bin/macdeployqt" "$APP" -qmldir=. -verbose=2
           echo "APP_BUNDLE=$APP" >> $GITHUB_ENV
 
-      - name: Ad-hoc Code Sign (prevents 'damaged' error)
+      - name: Sign to avoid “App is Damaged” Error
         run: |
           codesign --deep --force --sign "-" "$APP_BUNDLE"
 
-      - name: Remove Quarantine Attributes (fixes macOS Gatekeeper)
+      - name: Remove Quarantine Attributes (Gatekeeper bypass)
         run: |
           xattr -cr "$APP_BUNDLE"
 
-      - name: Create Drag-and-Drop DMG Installer
+      - name: Create DMG Installer
         run: |
           APP_NAME=$(basename "$APP_BUNDLE")
           DMG_NAME="${APP_NAME%.app}-Installer.dmg"
@@ -62,9 +62,9 @@ jobs:
             "$(dirname "$APP_BUNDLE")"
           echo "DMG_FILE=$DMG_NAME" >> $GITHUB_ENV
 
-      - name: Upload macOS DMG Artifact
+      - name: Upload DMG Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyQtApp-macOS-ARM64
+          name: MyQtApp-macOS-ARM64-Qt6.5
           path: ${{ env.DMG_FILE }}
 
