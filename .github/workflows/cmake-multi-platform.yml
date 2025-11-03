@@ -11,7 +11,7 @@ jobs:
 
     env:
       BUILD_DIR: build
-      QT_VERSION: 6.8.3
+      QT_VERSION: 6.7.3
 
     steps:
       - name: Checkout
@@ -33,14 +33,15 @@ jobs:
       - name: Build
         run: cmake --build ${{ env.BUILD_DIR }} --parallel 4
 
-      - name: Deploy app with macdeployqt
+      - name: Bundle Qt frameworks
         run: |
           APP=$(find ${{ env.BUILD_DIR }} -name "*.app" -type d | head -n 1)
-          echo "Found: $APP"
+          echo "✅ Found app: $APP"
           macdeployqt "$APP" -qmldir=. -verbose=1
 
-      - name: Upload .app
+      - name: Upload macOS App
         uses: actions/upload-artifact@v4
         with:
           name: macOS-App
           path: ${{ env.BUILD_DIR }}/*.app
+
